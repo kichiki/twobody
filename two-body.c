@@ -1,6 +1,6 @@
 /* coef of 2-body res functions on Jeffrey & Onishi 1984 JFM vol.139 p.261
  * Copyright (C) 1999 Kengo ICHIKI (kengo@caltech.edu)
- * $$
+ * $Id$
  */
 #include <math.h>
 #include <stdio.h> /* printf() fprintf() */
@@ -15,7 +15,7 @@ int
 main (int argc, char** argv);
 
 void
-XAG (int nmax);
+XAGP (int nmax);
 void
 YABG (int nmax);
 void
@@ -23,7 +23,7 @@ YCH (int nmax);
 void
 XC (int nmax);
 void
-XM (int nmax);
+XMQ (int nmax);
 void
 YM (int nmax);
 void
@@ -86,20 +86,20 @@ main (int argc, char** argv)
       exit (1);
     }
 
-  /*XAG (nmax);
-  XC (nmax);
+  XAGP (nmax);
+  XMQ (nmax);
+  /*XC (nmax);
   YCH (nmax);
-  XM (nmax);
   YM (nmax);
   ZM (nmax);*/
-  YABG (nmax);
+  /*YABG (nmax);*/
 
   return (0);
 }
 
 
 void
-XAG (int nmax)
+XAGP (int nmax)
 {
   int i;
   int n, p, q;
@@ -109,7 +109,7 @@ XAG (int nmax)
   ratio *coef_p;
   ratio *coef_v;
   ratio *cur;
-  ratio a;
+  ratio a, b, c;
 
 
   coef_p = (ratio *) malloc (sizeof (ratio)
@@ -212,6 +212,44 @@ XAG (int nmax)
 		  print_ratio (a);
 		  fprintf (stdout, "l^%d ", q);
 		}
+	    }
+	}
+      fprintf (stdout, "\n");
+    }
+
+  fprintf (stdout, "for XP\n");
+  for (k=0, two_k = 1;
+       k <= nmax;
+       k++, two_k *= 2)
+    {
+      fprintf (stdout, "f_%d = ", k);
+      for(q=1; q <= k - 1; q++)
+	{
+	  a.sgn = 1;
+	  a.num = 0;
+	  a.den = 1;
+	  for (n=1; n <= (q + 1) / 2; n++)
+	    {
+	      if (q - n >= 0
+		  && k - q - 1 >= 0)
+		{
+		  cur = coef_p + pointer_npq (nmax, n, q - n, k - q - 1);
+		  b.sgn = (*cur).sgn;
+		  b.num = (*cur).num * two_k * 3;
+		  b.den = (*cur).den * 2;
+		  add_ratio (a, b, &c);
+
+		  a.sgn = c.sgn;
+		  a.num = c.num;
+		  a.den = c.den;
+		}
+	    }
+	  if (a.num != 0)
+	    {
+	      if (a.sgn > 0)
+		fprintf (stdout, "+");
+	      print_ratio (a);
+	      fprintf (stdout, "l^%d ", q);
 	    }
 	}
       fprintf (stdout, "\n");
@@ -592,7 +630,7 @@ XC (int nmax)
 }
 
 void
-XM (int nmax)
+XMQ (int nmax)
 {
   int i;
   int n, p, q;
@@ -602,7 +640,7 @@ XM (int nmax)
   ratio *coef_p;
   ratio *coef_v;
   ratio *cur;
-  ratio a;
+  ratio a, b, c;
 
 
   coef_p = (ratio *) malloc (sizeof (ratio)
@@ -674,8 +712,49 @@ XM (int nmax)
 		  if (a.sgn > 0)
 		    fprintf (stdout, "+");
 		  print_ratio (a);
-		  fprintf (stdout, "l^%d ", q);
+		  if (k % 2 == 0)
+		    fprintf (stdout, "l^%d ", q);
+		  else
+		    fprintf (stdout, "l^%d ", q + 1);
 		}
+	    }
+	}
+      fprintf (stdout, "\n");
+    }
+
+  fprintf (stdout, "for XQ\n");
+  for (k=0, two_k = 1;
+       k <= nmax;
+       k++, two_k *= 2)
+    {
+      fprintf (stdout, "f_%d = ", k);
+      for(q=1; q <= k - 1; q++)
+	{
+	  a.sgn = 1;
+	  a.num = 0;
+	  a.den = 1;
+	  for (n=1; n <= (q + 1) / 2; n++)
+	    {
+	      if (q - n >= 0
+		  && k - q - 1 >= 0)
+		{
+		  cur = coef_p + pointer_npq (nmax, n, q - n, k - q - 1);
+		  b.sgn = (*cur).sgn;
+		  b.num = (*cur).num * two_k * 5;
+		  b.den = (*cur).den * 2;
+		  add_ratio (a, b, &c);
+
+		  a.sgn = c.sgn;
+		  a.num = c.num;
+		  a.den = c.den;
+		}
+	    }
+	  if (a.num != 0)
+	    {
+	      if (a.sgn > 0)
+		fprintf (stdout, "+");
+	      print_ratio (a);
+	      fprintf (stdout, "l^%d ", q);
 	    }
 	}
       fprintf (stdout, "\n");
@@ -777,7 +856,10 @@ YM (int nmax)
 		  if (a.sgn > 0)
 		    fprintf (stdout, "+");
 		  print_ratio (a);
-		  fprintf (stdout, "l^%d ", q);
+		  if (k % 2 == 0)
+		    fprintf (stdout, "l^%d ", q);
+		  else
+		    fprintf (stdout, "l^%d ", q + 1);
 		}
 	    }
 	}
@@ -881,7 +963,10 @@ ZM (int nmax)
 		  if (a.sgn > 0)
 		    fprintf (stdout, "+");
 		  print_ratio (a);
-		  fprintf (stdout, "l^%d ", q);
+		  if (k % 2 == 0)
+		    fprintf (stdout, "l^%d ", q);
+		  else
+		    fprintf (stdout, "l^%d ", q + 1);
 		}
 	    }
 	}
