@@ -1,13 +1,13 @@
 /* coef of 2-body res functions on Jeffrey & Onishi 1984 JFM vol.139 p.261
  * using GMP library
- * Copyright (C) 1999 Kengo ICHIKI (kengo@caltech.edu)
- * $Id: two-body-JO-gmp.c,v 3.1 1999/08/27 22:38:37 ichiki Exp $
+ * Copyright (C) 1999,2005 Kengo Ichiki <kichiki@uwo.ca>
+ * $Id: two-body-JO-gmp.c,v 4.1 1999/08/31 00:33:08 ichiki Exp $
  */
 #include <stdio.h>
 #include <stdlib.h> /* malloc() free() */
-#include "gmp.h"
+#include <gmp.h>
 
-#include "../bench.h" /* ptime_ms_d() */
+#include "../misc/bench.h" /* ptime_ms_d() */
 
 
 /* function prototypes */
@@ -105,7 +105,7 @@ main (void)
 
   ptime_ms_d();
 
-  XA_sum_l (nmax, lambda);
+  /*XA_sum_l (nmax, lambda);*/
   YA_sum_l (nmax, lambda);
   YB_sum_l (nmax, lambda);
   XC_sum_l (nmax, lambda);
@@ -121,7 +121,7 @@ main (void)
 
   time = ptime_ms_d();
 
-  fprintf (stdout, "# ptime = %f\n", time);
+  fprintf (stderr, "# ptime = %f\n", time);
 
   mpq_clear (lambda);
 
@@ -833,6 +833,12 @@ X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p)
 
       return;
     }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_p, 0, 1);
+      return;
+    }
 
   /* search buffer */
   sprintf (filename, "two-body.X_p.%d.%d.%d", 0, inp, inv);
@@ -971,6 +977,12 @@ X_v (int n, int p, int q, int inp, int inv, mpq_t coef_v)
 
       return;
     }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
 
   /* search buffer */
   sprintf (filename, "two-body.X_v.%d.%d.%d", 0, inp, inv);
@@ -1051,6 +1063,12 @@ X_q (int n, int p, int q, mpq_t coef_q)
 
       return;
     }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_q, 0, 1);
+      return;
+    }
 
   /* search buffer */
   sprintf (filename, "two-body.X_q.%d.%d.%d", 1, 0, 0);
@@ -1063,7 +1081,7 @@ X_q (int n, int p, int q, mpq_t coef_q)
 
   /* clear Qnpq */
   mpq_set_ui (coef_q, 0, 1);
-  for (s = 0; s <= q; s ++)
+  for (s = 1; s <= q; s ++)
     {
       /* Qnpq : Qs(q-s-1)(p-n) */
       X_q (s, q - s - 1, p - n, a);
@@ -1133,6 +1151,12 @@ Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
       else
 	mpq_set_ui (coef_p, 0, 1);
 
+      return;
+    }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_p, 0, 1);
       return;
     }
 
@@ -1300,6 +1324,12 @@ Y_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
 
       return;
     }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
 
   /* search buffer */
   sprintf (filename, "two-body.Y_v.%d.%d.%d", inq, inp, inv);
@@ -1384,6 +1414,12 @@ Y_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
       else
 	mpq_set_ui (coef_q, 0, 1);
 
+      return;
+    }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_q, 0, 1);
       return;
     }
 
@@ -1490,6 +1526,12 @@ YM_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
       else
 	mpq_set_ui (coef_p, 0, 1);
 
+      return;
+    }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_p, 0, 1);
       return;
     }
 
@@ -1658,6 +1700,12 @@ YM_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
 
       return;
     }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
 
   /* search buffer */
   sprintf (filename, "two-body.YM_v.%d.%d.%d", inq, inp, inv);
@@ -1742,6 +1790,12 @@ YM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
       else
 	mpq_set_ui (coef_q, 0, 1);
 
+      return;
+    }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_q, 0, 1);
       return;
     }
 
@@ -1843,6 +1897,12 @@ ZM_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
       else
 	mpq_set_ui (coef_p, 0, 1);
 
+      return;
+    }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_p, 0, 1);
       return;
     }
 
@@ -2014,6 +2074,12 @@ ZM_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
 
       return;
     }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
 
   /* search buffer */
   sprintf (filename, "two-body.ZM_v.%d.%d.%d", inq, inp, inv);
@@ -2098,6 +2164,12 @@ ZM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
       else
 	mpq_set_ui (coef_q, 0, 1);
 
+      return;
+    }
+  if (n > p + 1
+      || q == 0)
+    {
+      mpq_set_ui (coef_q, 0, 1);
       return;
     }
 
@@ -2252,7 +2324,7 @@ search_results (char *file, int n, int p, int q, mpq_t coef)
   FILE *res;
   mpz_t num, den;
   int nn, pp, qq;
-  char string [80];
+  char string [1024];
   int i;
 
   /* search buffer */
