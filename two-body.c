@@ -1,10 +1,11 @@
 /* coef of 2-body res functions on Jeffrey & Onishi 1984 JFM vol.139 p.261
+ * using GMP library
  * Copyright (C) 1999 Kengo ICHIKI (kengo@caltech.edu)
- * $Id: two-body-JO.c,v 1.4 1999/08/19 20:40:23 ichiki Exp $
+ * $Id$
  */
 #include <stdio.h>
 #include <stdlib.h> /* malloc() free() */
-#include "saml.h"
+#include "gmp.h"
 
 
 /* function prototypes */
@@ -12,122 +13,125 @@ int
 main (void);
 
 void
-make_coef_f (int nmax, mref_t lambda);
+make_coef_f (int nmax, mpq_t lambda);
 
 void
-print_coef_lambda (int nmax, mref_t *f, mref_t labmda, char *label);
+print_coef_lambda (int nmax, mpq_t *f, mpq_t labmda, char *label);
 void
-print_coef (int nmax, mref_t *f, char *label);
+print_coef (int nmax, mpq_t *f, char *label);
 
 void
-XAGP (int nmax, mref_t *fxa, mref_t *fxg, mref_t *fxp);
+XAGP (int nmax, mpq_t *fxa, mpq_t *fxg, mpq_t *fxp);
 void
-YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg);
+YABG (int nmax, mpq_t *fya, mpq_t *fyb, mpq_t *fyg);
 void
-XC (int nmax, mref_t *fxc);
+XC (int nmax, mpq_t *fxc);
 void
-YCH (int nmax, mref_t *fyc, mref_t *fyh);
+YCH (int nmax, mpq_t *fyc, mpq_t *fyh);
 void
-XMQ (int nmax, mref_t *fxm, mref_t *fxq);
+XMQ (int nmax, mpq_t *fxm, mpq_t *fxq);
 void
-YM (int nmax, mref_t *fym);
+YM (int nmax, mpq_t *fym);
 void
-ZM (int nmax, mref_t *fym);
+ZM (int nmax, mpq_t *fym);
 
 
 void
-X_problem (int nmax, mref_t*coef_p, mref_t*coef_v);
+X_problem (int nmax, mpq_t*coef_p, mpq_t*coef_v);
 void
-Y_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q);
+Y_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q);
 void
-XC_problem (int nmax, mref_t *coef_q);
+XC_problem (int nmax, mpq_t *coef_q);
 void
-YM_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q);
+YM_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q);
 void
-Z_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q);
+Z_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q);
 
 int
-comb (mref_t comb, int n, int m);
+comb (mpq_t comb, int n, int m);
 int
 pointer_npq (int nmax, int n, int p, int q);
 int
 pointer_mq (int nmax, int m, int q);
 
+void
+print_mpq (mpq_t x);
 
 int
 main (void)
 {
   int nmax;
-  mref_t lambda;
+  mpq_t lambda;
 
 
-  nmax = 11;
-  lambda = mref_new ();
-  mref_build (lambda, ST_RATIONAL, "1");
+  nmax = 50;
+
+  mpq_init (lambda);
+  mpq_set_ui (lambda, 1, 1);
 
   make_coef_f (nmax, lambda);
 
-  mref_free (lambda);
+  mpq_clear (lambda);
 
   return 0;
 }
 
 void
-make_coef_f (int nmax, mref_t lambda)
+make_coef_f (int nmax, mpq_t lambda)
 {
-  mref_t *fxa;
-  mref_t *fya;
-  mref_t *fyb;
-  mref_t *fxc;
-  mref_t *fyc;
-  mref_t *fxg;
-  mref_t *fyg;
-  mref_t *fyh;
-  mref_t *fxm;
-  mref_t *fym;
-  mref_t *fzm;
-  mref_t *fxp;
-  mref_t *fxq;
+  mpq_t *fxa;
+  mpq_t *fya;
+  mpq_t *fyb;
+  mpq_t *fxc;
+  mpq_t *fyc;
+  mpq_t *fxg;
+  mpq_t *fyg;
+  mpq_t *fyh;
+  mpq_t *fxm;
+  mpq_t *fym;
+  mpq_t *fzm;
+  mpq_t *fxp;
+  mpq_t *fxq;
 
-  mref_t *cur;
-  mref_t a;
-  mref_t b;
-  mref_t lq;
+  mpq_t *cur;
+  mpq_t a;
+  mpq_t b;
+  mpq_t lq;
 
   int i;
   int m, q;
 
 
-  a = mref_new ();
-  b = mref_new ();
-  lq = mref_new ();
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (lq);
 
 
-  fxa = (mref_t *) malloc (sizeof (mref_t)
+  fxa = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fya = (mref_t *) malloc (sizeof (mref_t)
+  fya = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fyb = (mref_t *) malloc (sizeof (mref_t)
+  fyb = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fxc = (mref_t *) malloc (sizeof (mref_t)
+  fxc = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fyc = (mref_t *) malloc (sizeof (mref_t)
+  fyc = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fxg = (mref_t *) malloc (sizeof (mref_t)
+  fxg = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fyg = (mref_t *) malloc (sizeof (mref_t)
+  fyg = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fyh = (mref_t *) malloc (sizeof (mref_t)
+  fyh = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fxm = (mref_t *) malloc (sizeof (mref_t)
+  fxm = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fym = (mref_t *) malloc (sizeof (mref_t)
+  fym = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fzm = (mref_t *) malloc (sizeof (mref_t)
+  fzm = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fxp = (mref_t *) malloc (sizeof (mref_t)
+  fxp = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
-  fxq = (mref_t *) malloc (sizeof (mref_t)
+  fxq = (mpq_t *) malloc (sizeof (mpq_t)
 			   * (nmax + 1) * (nmax + 1));
 
   /* zero clear */
@@ -138,54 +142,54 @@ make_coef_f (int nmax, mref_t lambda)
 	  i = pointer_mq (nmax, m, q);
 
 	  cur = fxa + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fya + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fyb + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fxc + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fyc + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fxg + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fyg + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fyh + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fxm + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fym + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fzm + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fxp + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	  cur = fxq + i;
-	  (*cur) = mref_new ();
-	  mref_build ((*cur), ST_RATIONAL, "0");
+	  mpq_init (*cur);
+	  mpq_set_ui ((*cur), 0, 1);
 	}
     }
 
   /* OK */
   XAGP (nmax, fxa, fxg, fxp);
+  YABG (nmax, fya, fyb, fyg);
   XC (nmax, fxc);
   YCH (nmax, fyc, fyh);
   YM (nmax, fym);
   ZM (nmax, fzm);
-  YABG (nmax, fya, fyb, fyg);
   /* NG? */
   XMQ (nmax, fxm, fxq);
 
@@ -222,9 +226,9 @@ make_coef_f (int nmax, mref_t lambda)
 
 
   /* free */
-  mref_free (a);
-  mref_free (b);
-  mref_free (lq);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (lq);
 
   for (m=0; m <= nmax; m++)
     {
@@ -233,31 +237,31 @@ make_coef_f (int nmax, mref_t lambda)
 	  i = pointer_mq (nmax, m, q);
 
 	  cur = fxa + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fya + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fyb + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fxc + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fyc + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fxg + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fyg + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fyh + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fxm + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fym + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fzm + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fxp + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	  cur = fxq + i;
-	  mref_free (*cur);
+	  mpq_clear (*cur);
 	}
     }
   free (fxa);
@@ -284,44 +288,45 @@ make_coef_f (int nmax, mref_t lambda)
  * OUTPUT (stdout)
  */
 void
-print_coef_lambda (int nmax, mref_t *f, mref_t lambda, char *label)
+print_coef_lambda (int nmax, mpq_t *f, mpq_t lambda, char *label)
 {
-  mref_t *cur;
-  mref_t a;
-  mref_t b;
-  mref_t lq;
+  mpq_t *cur;
+  mpq_t a;
+  mpq_t b;
+  mpq_t lq;
 
   int i;
   int m, q;
 
 
-  a = mref_new ();
-  b = mref_new ();
-  lq = mref_new ();
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (lq);
 
   for (m=0; m <= nmax; m++)
     {
-      mref_build (a, ST_RATIONAL, "0");
-      for (q=0, mref_build (lq, ST_RATIONAL, "1");
+      mpq_set_ui (a, 0, 1);
+      for (q=0, mpq_set_ui (lq, 1, 1);
 	   q <= nmax;
-	   q++, mref_mul (lq, lq, lambda))
+	   q++, mpq_mul (lq, lq, lambda))
 	{
 	  i = pointer_mq (nmax, m, q);
 
 	  cur = f + i;
-	  mref_copy (b, (*cur));
-	  mref_mul (b, b, lq);
-	  mref_add (a, a, b);
+	  mpq_set (b, (*cur));
+	  mpq_mul (b, b, lq);
+	  mpq_add (a, a, b);
 	}
-      fprintf (stdout, "%s [%d] = %s\n",
+      fprintf (stdout, "%s [%d] = ",
 	       label,
-	       m,
-	       mref_string (a));
+	       m);
+      print_mpq (a);
+      fprintf (stdout, "\n");
     }
 
-  mref_free (a);
-  mref_free (b);
-  mref_free (lq);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (lq);
 }
 
 /* print coef (without sum up)
@@ -333,9 +338,9 @@ print_coef_lambda (int nmax, mref_t *f, mref_t lambda, char *label)
  * OUTPUT (stdout)
  */
 void
-print_coef (int nmax, mref_t *f, char *label)
+print_coef (int nmax, mpq_t *f, char *label)
 {
-  mref_t *cur;
+  mpq_t *cur;
 
   int i;
   int m, q;
@@ -348,9 +353,10 @@ print_coef (int nmax, mref_t *f, char *label)
 	  i = pointer_mq (nmax, m, q);
 
 	  cur = f + i;
-	  if (mref_notzero (*cur))
+	  if (mpz_cmp_si (mpq_numref (*cur), 0))
+          /*if (mref_notzero (*cur))*/
 	    {
-	      fprintf (stdout, "%s", mref_string (*cur));
+	      print_mpq (*cur);
 	      fprintf (stdout, " l^%d ", q);
 	    }
 	}
@@ -367,30 +373,30 @@ print_coef (int nmax, mref_t *f, char *label)
  *   fxp [(nmax + 1) * (nmax + 1)]
  */
 void
-XAGP (int nmax, mref_t *fxa, mref_t *fxg, mref_t *fxp)
+XAGP (int nmax, mpq_t *fxa, mpq_t *fxg, mpq_t *fxp)
 {
   int i;
   int n, p, q;
   int k;
 
-  mref_t two;
-  mref_t two_k;
-  mref_t *coef_p;
-  mref_t *coef_v;
-  mref_t *cur;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+  mpq_t *coef_p;
+  mpq_t *coef_v;
+  mpq_t *cur;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  two = mref_new ();
-  two_k = mref_new ();
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (two);
+  mpq_init (two_k);
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
-  coef_p = (mref_t *) malloc (sizeof (mref_t)
+  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mref_t *) malloc (sizeof (mref_t)
+  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
   if (coef_p == NULL
       || coef_v == NULL)
@@ -410,31 +416,31 @@ XAGP (int nmax, mref_t *fxa, mref_t *fxg, mref_t *fxp)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_v + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 	    }
 	}
     }
   /* initial condition */
   cur = coef_p + pointer_npq (nmax, 1, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   cur = coef_v + pointer_npq (nmax, 1, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   X_problem (nmax, coef_p, coef_v);
 
 
-  mref_build (two, ST_RATIONAL, "2");
+  mpq_set_ui (two, 2, 1);
   /* XA */
   n = 1;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q <= nmax; q++)
 	{
@@ -442,21 +448,21 @@ XAGP (int nmax, mref_t *fxa, mref_t *fxg, mref_t *fxp)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 
 	      cur = fxa + pointer_mq (nmax, k, q);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
   /* XG */
   n = 2;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q <= nmax; q++)
 	{
@@ -464,59 +470,59 @@ XAGP (int nmax, mref_t *fxa, mref_t *fxg, mref_t *fxp)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 	      /* mul 3 */
-	      mref_build (tmp, ST_RATIONAL, "3");
-	      mref_mul (a, a, tmp);
+	      mpq_set_ui (tmp, 3, 1);
+	      mpq_mul (a, a, tmp);
 	      /* mul 4 */
-	      mref_build (tmp, ST_RATIONAL, "4");
-	      mref_div (a, a, tmp);
+	      mpq_set_ui (tmp, 4, 1);
+	      mpq_div (a, a, tmp);
 
 	      cur = fxg + pointer_mq (nmax, k, q);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
   /* XP */
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=1; q <= k - 1; q++)
 	{
-	  mref_build (a, ST_RATIONAL, "0");
+	  mpq_set_ui (a, 0, 1);
 	  for (n=1; n <= (q + 1) / 2; n++)
 	    {
 	      if (q - n >= 0
 		  && k - q - 1 >= 0)
 		{
 		  cur = coef_p + pointer_npq (nmax, n, q - n, k - q - 1);
-		  mref_copy (b, (*cur));
+		  mpq_set (b, (*cur));
 		  /* mul (two_k) */
-		  mref_mul (b, b, two_k);
+		  mpq_mul (b, b, two_k);
 		  /* mul 3 */
-		  mref_build (tmp, ST_RATIONAL, "3");
-		  mref_mul (b, b, tmp);
+		  mpq_set_ui (tmp, 3, 1);
+		  mpq_mul (b, b, tmp);
 		  /* mul 2 */
-		  mref_build (tmp, ST_RATIONAL, "2");
-		  mref_div (b, b, tmp);
+		  mpq_set_ui (tmp, 2, 1);
+		  mpq_div (b, b, tmp);
 
-		  mref_add (a, a, b);
+		  mpq_add (a, a, b);
 		}
 	    }
 	  cur = fxp + pointer_mq (nmax, k, q);
-	  mref_copy ((*cur), a);
+	  mpq_set ((*cur), a);
 	}
     }
 
-  mref_free (two);
-  mref_free (two_k);
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (two);
+  mpq_clear (two_k);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
   /* free coef_p,v */
   for (n=0; n <= nmax; n++)
     {
@@ -527,9 +533,9 @@ XAGP (int nmax, mref_t *fxa, mref_t *fxg, mref_t *fxp)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_v + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	    }
 	}
     }
@@ -546,33 +552,33 @@ XAGP (int nmax, mref_t *fxa, mref_t *fxg, mref_t *fxp)
  *   fyg [(nmax + 1) * (nmax + 1)]
  */
 void
-YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg)
+YABG (int nmax, mpq_t *fya, mpq_t *fyb, mpq_t *fyg)
 {
   int i;
   int n, p, q;
   int k;
 
-  mref_t two;
-  mref_t two_k;
-  mref_t *coef_p;
-  mref_t *coef_v;
-  mref_t *coef_q;
-  mref_t *cur;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+  mpq_t *coef_p;
+  mpq_t *coef_v;
+  mpq_t *coef_q;
+  mpq_t *cur;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  two = mref_new ();
-  two_k = mref_new ();
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (two);
+  mpq_init (two_k);
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
-  coef_p = (mref_t *) malloc (sizeof (mref_t)
+  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mref_t *) malloc (sizeof (mref_t)
+  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mref_t *) malloc (sizeof (mref_t)
+  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
   if (coef_p == NULL
       || coef_v == NULL
@@ -593,45 +599,35 @@ YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_v + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_q + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 	    }
 	}
     }
   /* initial condition */
   cur = coef_p + pointer_npq (nmax, 1, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   cur = coef_v + pointer_npq (nmax, 1, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   Y_problem (nmax, coef_p, coef_v, coef_q);
 
-  /*for (n=1; n<=nmax; n++)
-    for (p=0; p<=nmax; p++)
-      for (q=0; q<=nmax; q++)
-	{
-	  fprintf (stdout, "P_%d %d %d = ", n, p, q);
-	  cur = coef_p + pointer_npq (nmax, n, p, q);
-	  fprintf (stdout, "%s", mref_string (*cur));
-	  fprintf (stdout, " \n");
-	}
-  exit (0);*/
 
-  mref_build (two, ST_RATIONAL, "2");
+  mpq_set_ui (two, 2, 1);
   /* YA */
   n = 1;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q <= nmax; q++)
 	{
@@ -639,21 +635,21 @@ YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 
 	      cur = fya + pointer_mq (nmax, k, q);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
   /* YB */
   n = 1;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q <= nmax; q++)
 	{
@@ -661,24 +657,24 @@ YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg)
 	  if (p >= 0)
 	    {
 	      cur = coef_q + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 	      /* mul 2 */
-	      mref_build (tmp, ST_RATIONAL, "2");
-	      mref_mul (a, a, tmp);
+	      mpq_set_ui (tmp, 2, 1);
+	      mpq_mul (a, a, tmp);
 
 	      cur = fyb + pointer_mq (nmax, k, q);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
   /* YG */
   n = 2;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q <= nmax; q++)
 	{
@@ -686,27 +682,27 @@ YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 	      /* mul 3 */
-	      mref_build (tmp, ST_RATIONAL, "3");
-	      mref_mul (a, a, tmp);
+	      mpq_set_ui (tmp, 3, 1);
+	      mpq_mul (a, a, tmp);
 	      /* div 4 */
-	      mref_build (tmp, ST_RATIONAL, "4");
-	      mref_div (a, a, tmp);
+	      mpq_set_ui (tmp, 4, 1);
+	      mpq_div (a, a, tmp);
 
 	      cur = fyg + pointer_mq (nmax, k, q);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
-  mref_free (two);
-  mref_free (two_k);
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (two);
+  mpq_clear (two_k);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
   /* free coef_p,v,q */
   for (n=0; n <= nmax; n++)
     {
@@ -717,11 +713,11 @@ YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_v + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_q + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	    }
 	}
     }
@@ -737,26 +733,26 @@ YABG (int nmax, mref_t *fya, mref_t *fyb, mref_t *fyg)
  *   fxc [(nmax + 1) * (nmax + 1)]
  */
 void
-XC (int nmax, mref_t *fxc)
+XC (int nmax, mpq_t *fxc)
 {
   int i;
   int n, p, q;
   int k;
 
-  mref_t two;
-  mref_t two_k;
-  mref_t *coef_q;
-  mref_t *cur;
-  mref_t a;
-  mref_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+  mpq_t *coef_q;
+  mpq_t *cur;
+  mpq_t a;
+  mpq_t tmp;
 
 
-  two = mref_new ();
-  two_k = mref_new ();
-  a = mref_new ();
-  tmp = mref_new ();
+  mpq_init (two);
+  mpq_init (two_k);
+  mpq_init (a);
+  mpq_init (tmp);
 
-  coef_q = (mref_t *) malloc (sizeof (mref_t)
+  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
   if (coef_q == NULL)
     {
@@ -775,8 +771,8 @@ XC (int nmax, mref_t *fxc)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_q + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 	    }
 	}
     }
@@ -784,17 +780,17 @@ XC (int nmax, mref_t *fxc)
 
   /* initial condition */
   cur = coef_q + pointer_npq (nmax, 1, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   XC_problem (nmax, coef_q);
 
 
-  mref_build (two, ST_RATIONAL, "2");
+  mpq_set_ui (two, 2, 1);
   /* XC */
   n = 1;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q </*=*/ nmax; q++)
 	{
@@ -802,23 +798,23 @@ XC (int nmax, mref_t *fxc)
 	  if (p >= 0)
 	    {
 	      cur = coef_q + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 
 	      if (k % 2 == 0)
 		cur = fxc + pointer_mq (nmax, k, q);
 	      else
 		cur = fxc + pointer_mq (nmax, k, q + 1);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
-  mref_free (two);
-  mref_free (two_k);
-  mref_free (a);
-  mref_free (tmp);
+  mpq_clear (two);
+  mpq_clear (two_k);
+  mpq_clear (a);
+  mpq_clear (tmp);
   /* free coef_q */
   for (n=0; n <= nmax; n++)
     {
@@ -829,7 +825,7 @@ XC (int nmax, mref_t *fxc)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_q + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	    }
 	}
     }
@@ -844,33 +840,33 @@ XC (int nmax, mref_t *fxc)
  *   fyh [(nmax + 1) * (nmax + 1)]
  */
 void
-YCH (int nmax, mref_t *fyc, mref_t *fyh)
+YCH (int nmax, mpq_t *fyc, mpq_t *fyh)
 {
   int i;
   int n, p, q;
   int k;
 
-  mref_t two;
-  mref_t two_k;
-  mref_t *coef_p;
-  mref_t *coef_v;
-  mref_t *coef_q;
-  mref_t *cur;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+  mpq_t *coef_p;
+  mpq_t *coef_v;
+  mpq_t *coef_q;
+  mpq_t *cur;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  two = mref_new ();
-  two_k = mref_new ();
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (two);
+  mpq_init (two_k);
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
-  coef_p = (mref_t *) malloc (sizeof (mref_t)
+  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mref_t *) malloc (sizeof (mref_t)
+  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mref_t *) malloc (sizeof (mref_t)
+  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
   if (coef_p == NULL
       || coef_v == NULL
@@ -891,32 +887,32 @@ YCH (int nmax, mref_t *fyc, mref_t *fyh)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_v + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_q + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 	    }
 	}
     }
   /* initial condition */
   cur = coef_q + pointer_npq (nmax, 1, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   Y_problem (nmax, coef_p, coef_v, coef_q);
 
 
-  mref_build (two, ST_RATIONAL, "2");
+  mpq_set_ui (two, 2, 1);
   /* YC */
   n = 1;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q </*=*/ nmax; q++)
 	{
@@ -924,24 +920,24 @@ YCH (int nmax, mref_t *fyc, mref_t *fyh)
 	  if (p >= 0)
 	    {
 	      cur = coef_q + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 
 	      if (k % 2 == 0)
 		cur = fyc + pointer_mq (nmax, k, q);
 	      else
 		cur = fyc + pointer_mq (nmax, k, q + 1);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
   /* YH */
   n = 2;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q </*=*/ nmax; q++)
 	{
@@ -949,30 +945,30 @@ YCH (int nmax, mref_t *fyc, mref_t *fyh)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 	      /* mul -3 */
-	      mref_build (tmp, ST_RATIONAL, "-3");
-	      mref_mul (a, a, tmp);
+	      mpq_set_si (tmp, -3, 1);
+	      mpq_mul (a, a, tmp);
 	      /* div 8 */
-	      mref_build (tmp, ST_RATIONAL, "8");
-	      mref_div (a, a, tmp);
+	      mpq_set_ui (tmp, 8, 1);
+	      mpq_div (a, a, tmp);
 
 	      if (k % 2 == 0)
 		cur = fyh + pointer_mq (nmax, k, q);
 	      else
 		cur = fyh + pointer_mq (nmax, k, q + 1);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
-  mref_free (two);
-  mref_free (two_k);
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (two);
+  mpq_clear (two_k);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
   /* free coef_p,v,q */
   for (n=0; n <= nmax; n++)
     {
@@ -983,11 +979,11 @@ YCH (int nmax, mref_t *fyc, mref_t *fyh)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_v + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_q + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	    }
 	}
     }
@@ -1004,30 +1000,30 @@ YCH (int nmax, mref_t *fyc, mref_t *fyh)
  *   fxq [(nmax + 1) * (nmax + 1)]
  */
 void
-XMQ (int nmax, mref_t *fxm, mref_t *fxq)
+XMQ (int nmax, mpq_t *fxm, mpq_t *fxq)
 {
   int i;
   int n, p, q;
   int k;
 
-  mref_t two;
-  mref_t two_k;
-  mref_t *coef_p;
-  mref_t *coef_v;
-  mref_t *cur;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+  mpq_t *coef_p;
+  mpq_t *coef_v;
+  mpq_t *cur;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  two = mref_new ();
-  two_k = mref_new ();
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (two);
+  mpq_init (two_k);
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
-  coef_p = (mref_t *) malloc (sizeof (mref_t)
+  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mref_t *) malloc (sizeof (mref_t)
+  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
   if (coef_p == NULL
       || coef_v == NULL)
@@ -1047,42 +1043,31 @@ XMQ (int nmax, mref_t *fxm, mref_t *fxq)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_v + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 	    }
 	}
     }
   /* initial condition */
   cur = coef_p + pointer_npq (nmax, 2, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   cur = coef_v + pointer_npq (nmax, 2, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   X_problem (nmax, coef_p, coef_v);
 
 
-  /*for (n=1; n<=nmax; n++)
-    for (p=0; p<=nmax; p++)
-      for (q=0; q<=nmax; q++)
-	{
-	  fprintf (stdout, "P_%d %d %d = ", n, p, q);
-	  cur = coef_p + pointer_npq (nmax, n, p, q);
-	  fprintf (stdout, "%s", mref_string (*cur));
-	  fprintf (stdout, " \n");
-	}
-  exit (0);*/
-
-  mref_build (two, ST_RATIONAL, "2");
+  mpq_set_ui (two, 2, 1);
   /* XM */
   n = 2;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q </*=*/ nmax; q++)
 	{
@@ -1090,59 +1075,59 @@ XMQ (int nmax, mref_t *fxm, mref_t *fxq)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 
 	      if (k % 2 == 0)
 		cur = fxm + pointer_mq (nmax, k, q);
 	      else
 		cur = fxm + pointer_mq (nmax, k, q + 1);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
   /* XQ */
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=1; q <= k - 1; q++)
 	{
-	  mref_build (a, ST_RATIONAL, "0");
+	  mpq_set_ui (a, 0, 1);
 	  for (n=1; n <= (q + 1) / 2; n++)
 	    {
 	      if (q - n >= 0
 		  && k - q - 1 >= 0)
 		{
 		  cur = coef_p + pointer_npq (nmax, n, q - n, k - q - 1);
-		  mref_copy (b, (*cur));
+		  mpq_set (b, (*cur));
 		  /* mul (two_k) */
-		  mref_mul (b, b, two_k);
+		  mpq_mul (b, b, two_k);
 		  /* mul 5 */
-		  mref_build (tmp, ST_RATIONAL, "5");
-		  mref_mul (b, b, tmp);
+		  mpq_set_ui (tmp, 5, 1);
+		  mpq_mul (b, b, tmp);
 		  /* mul 2 */
-		  mref_build (tmp, ST_RATIONAL, "2");
-		  mref_div (b, b, tmp);
+		  mpq_set_ui (tmp, 2, 1);
+		  mpq_div (b, b, tmp);
 
-		  mref_add (a, a, b);
+		  mpq_add (a, a, b);
 		}
 	    }
 	  if (k % 2 == 0)
 	    cur = fxq + pointer_mq (nmax, k, q);
 	  else
 	    cur = fxq + pointer_mq (nmax, k, q + 1);
-	  mref_copy ((*cur), a);
+	  mpq_set ((*cur), a);
 	}
     }
 
-  mref_free (two);
-  mref_free (two_k);
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (two);
+  mpq_clear (two_k);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
   /* free coef_p,v */
   for (n=0; n <= nmax; n++)
     {
@@ -1153,9 +1138,9 @@ XMQ (int nmax, mref_t *fxm, mref_t *fxq)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_v + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	    }
 	}
     }
@@ -1170,33 +1155,33 @@ XMQ (int nmax, mref_t *fxm, mref_t *fxq)
  *   fym [(nmax + 1) * (nmax + 1)]
  */
 void
-YM (int nmax, mref_t *fym)
+YM (int nmax, mpq_t *fym)
 {
   int i;
   int n, p, q;
   int k;
 
-  mref_t two;
-  mref_t two_k;
-  mref_t *coef_p;
-  mref_t *coef_v;
-  mref_t *coef_q;
-  mref_t *cur;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+  mpq_t *coef_p;
+  mpq_t *coef_v;
+  mpq_t *coef_q;
+  mpq_t *cur;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  two = mref_new ();
-  two_k = mref_new ();
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (two);
+  mpq_init (two_k);
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
-  coef_p = (mref_t *) malloc (sizeof (mref_t)
+  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mref_t *) malloc (sizeof (mref_t)
+  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mref_t *) malloc (sizeof (mref_t)
+  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
   if (coef_p == NULL
       || coef_v == NULL
@@ -1217,35 +1202,35 @@ YM (int nmax, mref_t *fym)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_v + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_q + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 	    }
 	}
     }
   /* initial condition */
   cur = coef_p + pointer_npq (nmax, 2, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   cur = coef_v + pointer_npq (nmax, 2, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   YM_problem (nmax, coef_p, coef_v, coef_q);
 
 
-  mref_build (two, ST_RATIONAL, "2");
+  mpq_set_ui (two, 2, 1);
   /* YM */
   n = 2;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q </*=*/ nmax; q++)
 	{
@@ -1253,24 +1238,24 @@ YM (int nmax, mref_t *fym)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 
 	      if (k % 2 == 0)
 		cur = fym + pointer_mq (nmax, k, q);
 	      else
 		cur = fym + pointer_mq (nmax, k, q + 1);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
-  mref_free (two);
-  mref_free (two_k);
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (two);
+  mpq_clear (two_k);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
   /* free coef_p,v,q */
   for (n=0; n <= nmax; n++)
     {
@@ -1281,11 +1266,11 @@ YM (int nmax, mref_t *fym)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_v + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_q + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	    }
 	}
     }
@@ -1301,33 +1286,33 @@ YM (int nmax, mref_t *fym)
  *   fzm [(nmax + 1) * (nmax + 1)]
  */
 void
-ZM (int nmax, mref_t *fzm)
+ZM (int nmax, mpq_t *fzm)
 {
   int i;
   int n, p, q;
   int k;
 
-  mref_t two;
-  mref_t two_k;
-  mref_t *coef_p;
-  mref_t *coef_v;
-  mref_t *coef_q;
-  mref_t *cur;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+  mpq_t *coef_p;
+  mpq_t *coef_v;
+  mpq_t *coef_q;
+  mpq_t *cur;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  two = mref_new ();
-  two_k = mref_new ();
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (two);
+  mpq_init (two_k);
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
-  coef_p = (mref_t *) malloc (sizeof (mref_t)
+  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mref_t *) malloc (sizeof (mref_t)
+  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mref_t *) malloc (sizeof (mref_t)
+  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
 			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
   if (coef_p == NULL
       || coef_v == NULL
@@ -1348,45 +1333,34 @@ ZM (int nmax, mref_t *fzm)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_v + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 
 	      cur = coef_q + i;
-	      (*cur) = mref_new ();
-	      mref_build ((*cur), ST_RATIONAL, "0");
+	      mpq_init (*cur);
+	      mpq_set_ui ((*cur), 0, 1);
 	    }
 	}
     }
   /* initial condition */
   cur = coef_p + pointer_npq (nmax, 2, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   cur = coef_v + pointer_npq (nmax, 2, 0, 0);
-  mref_build ((*cur), ST_RATIONAL, "1");
+  mpq_set_ui ((*cur), 1, 1);
 
   Z_problem (nmax, coef_p, coef_v, coef_q);
 
 
-  /*for (n=1; n<=nmax; n++)
-    for (p=0; p<=nmax; p++)
-      for (q=0; q<=nmax; q++)
-	{
-	  fprintf (stdout, "P_%d %d %d = ", n, p, q);
-	  cur = coef_p + pointer_npq (nmax, n, p, q);
-	  fprintf (stdout, "%s", mref_string (*cur));
-	  fprintf (stdout, " \n");
-	}
-  exit (0);*/
-
-  mref_build (two, ST_RATIONAL, "2");
+  mpq_set_ui (two, 2, 1);
   n = 2;
-  for (k=0, mref_build (two_k, ST_RATIONAL, "1");
+  for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
-       k++, mref_mul (two_k, two_k, two))
+       k++, mpq_mul (two_k, two_k, two))
     {
       for(q=0; q </*=*/ nmax; q++)
 	{
@@ -1394,24 +1368,24 @@ ZM (int nmax, mref_t *fzm)
 	  if (p >= 0)
 	    {
 	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mref_copy (a, (*cur));
+	      mpq_set (a, (*cur));
 	      /* mul (two_k) */
-	      mref_mul (a, a, two_k);
+	      mpq_mul (a, a, two_k);
 
 	      if (k % 2 == 0)
 		cur = fzm + pointer_mq (nmax, k, q);
 	      else
 		cur = fzm + pointer_mq (nmax, k, q + 1);
-	      mref_copy ((*cur), a);
+	      mpq_set ((*cur), a);
 	    }
 	}
     }
 
-  mref_free (two);
-  mref_free (two_k);
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (two);
+  mpq_clear (two_k);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
   /* free coef_p,v,q */
   for (n=0; n <= nmax; n++)
     {
@@ -1422,11 +1396,11 @@ ZM (int nmax, mref_t *fzm)
 	      i = pointer_npq (nmax, n, p, q);
 
 	      cur = coef_p + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_v + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	      cur = coef_q + i;
-	      mref_free (*cur);
+	      mpq_clear (*cur);
 	    }
 	}
     }
@@ -1438,21 +1412,20 @@ ZM (int nmax, mref_t *fzm)
 
 
 void
-X_problem (int nmax, mref_t*coef_p, mref_t*coef_v)
+X_problem (int nmax, mpq_t*coef_p, mpq_t*coef_v)
 {
-  char string [20];
   int i;
   int n, p, q, s;
 
-  mref_t *cur;
-  mref_t *cur0;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t *cur;
+  mpq_t *cur0;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
   for (i=1; i <= nmax; i++)
     {
@@ -1465,10 +1438,10 @@ X_problem (int nmax, mref_t*coef_p, mref_t*coef_v)
 		{
 		  /* clear Pnpq and Vnpq */
 		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  for (s=1; s <= q; s++)
 		    {
@@ -1478,81 +1451,70 @@ X_problem (int nmax, mref_t*coef_p, mref_t*coef_v)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (a, (*cur0));
+			  mpq_set (a, (*cur0));
 
 			  /* mul comb (n+s,n) */
 			  comb (tmp, n + s, n);
-			  mref_mul (a, a, tmp);
+			  mpq_mul (a, a, tmp);
 			  /* mul (-2n) */
-			  sprintf (string, "%d", - 2 * n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (a, a, tmp);
+			  mpq_set_si (tmp, - 2 * n, 1);
+			  mpq_mul (a, a, tmp);
 			  /* div (n+1) */
-			  sprintf (string, "%d", n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, n + 1, 1);
+			  mpq_div (a, a, tmp);
 			  /* div (2n+3) */
-			  sprintf (string, "%d", 2 * n + 3);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, 2 * n + 3, 1);
+			  mpq_div (a, a, tmp);
 
 			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mref_add ((*cur), (*cur), a);
+			  mpq_add ((*cur), (*cur), a);
 			}
 
 		      /* Pnpq */
-		      mref_build (a, ST_RATIONAL, "0");
+		      mpq_set_ui (a, 0, 1);
 		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
 		      if (p - n + 1 >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul n */
-			  sprintf (string, "%d", n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (2n+1) */
-			  sprintf (string, "%d", 2 * n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n + 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (2ns-n-s+2) */
-			  sprintf (string, "%d", 2 * n * s - n - s + 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n * s - n - s + 2, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2(2s-1) */
-			  sprintf (string, "%d", 2 * (2 * s - 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * (2 * s - 1), 1);
+			  mpq_div (b, b, tmp);
 			  /* div (n+s) */
-			  sprintf (string, "%d", n + s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, n + s, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
 		      if (p - n - 1 >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul -n */
-			  sprintf (string, "%d", - n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, - n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (2n-1) */
-			  sprintf (string, "%d", 2 * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2 */
-			  sprintf (string, "%d", 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_ui (tmp, 2, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 
 		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
@@ -1561,65 +1523,60 @@ X_problem (int nmax, mref_t*coef_p, mref_t*coef_v)
 			{
 			  cur0 = coef_v
 			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul -n */
-			  sprintf (string, "%d", - n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, - n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (4n^2-1) */
-			  sprintf (string, "%d", 4 * n * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 4 * n * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2(2s+1) */
-			  sprintf (string, "%d", 2 * (2 * s + 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* mul comb (n+s,n) */
 		      comb (tmp, n + s, n);
-		      mref_mul (a, a, tmp);
+		      mpq_mul (a, a, tmp);
 		      /* div (n+1) */
-		      sprintf (string, "%d", n + 1);
-		      mref_build (tmp, ST_RATIONAL, string);
-		      mref_div (a, a, tmp);
+		      mpq_set_si (tmp, n + 1, 1);
+		      mpq_div (a, a, tmp);
 
 		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mref_add ((*cur), (*cur), a);
+		      mpq_add ((*cur), (*cur), a);
 		    }
 		  /* Vnpq : 1st term Pnpq */
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
 		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
-		  mref_add ((*cur), (*cur), (*cur0));
+		  mpq_add ((*cur), (*cur), (*cur0));
 		}
 	    }
 	}
     }
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
 }
 
 void
-Y_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
+Y_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
 {
-  char string [20];
   int i;
   int n, p, q, s;
 
-  mref_t *cur;
-  mref_t *cur0;
-  mref_t a, b;
-  mref_t tmp;
-  mref_t tmp0;
+  mpq_t *cur;
+  mpq_t *cur0;
+  mpq_t a, b;
+  mpq_t tmp;
+  mpq_t tmp0;
 
 
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
-  tmp0 = mref_new ();
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+  mpq_init (tmp0);
 
   for (i=1; i <= nmax; i++)
     {
@@ -1632,13 +1589,13 @@ Y_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 		{
 		  /* clear Pnpq, Vnpq and Qnpq */
 		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  for (s=1; s <= q; s++)
 		    {
@@ -1650,95 +1607,81 @@ Y_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			  cur0 = coef_p
 			    /*+ pointer_npq (nmax, s, q - s, p - n + 1);*/
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (a, (*cur0));
+			  mpq_set (a, (*cur0));
 
 			  /* mul comb (n+s,n+1) */
 			  comb (tmp, n + s, n + 1);
-			  mref_mul (a, a, tmp);
+			  mpq_mul (a, a, tmp);
 			  /* mul (2n) */
-			  sprintf (string, "%d", 2 * n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (a, a, tmp);
+			  mpq_set_si (tmp, 2 * n, 1);
+			  mpq_mul (a, a, tmp);
 			  /* div (n+1) */
-			  sprintf (string, "%d", n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, n + 1, 1);
+			  mpq_div (a, a, tmp);
 			  /* div (2n+3) */
-			  sprintf (string, "%d", 2 * n + 3);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, 2 * n + 3, 1);
+			  mpq_div (a, a, tmp);
 
 			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mref_add ((*cur), (*cur), a);
+			  mpq_add ((*cur), (*cur), a);
 			}
 
 		      /* Pnpq */
-		      mref_build (a, ST_RATIONAL, "0");
+		      mpq_set_ui (a, 0, 1);
 		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
 		      if (p - n + 1 >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul (2n+1) */
-			  sprintf (string, "%d", 2 * n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n + 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2 */
-			  sprintf (string, "%d", 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2, 1);
+			  mpq_div (b, b, tmp);
 
 			  /* mul 3(n+s)-(ns+1)(2ns-s-n+2) */
 			  /* calc -(ns+1)(2ns-s-n+2) */
-			  sprintf (string, "%d", - (n * s + 1));
-			  mref_build (tmp0, ST_RATIONAL, string);
-			  sprintf (string, "%d", 2 * n * s - s - n + 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (tmp, tmp, tmp0);
+			  mpq_set_si (tmp0, - (n * s + 1), 1);
+			  mpq_set_si (tmp, 2 * n * s - s - n + 2, 1);
+			  mpq_mul (tmp, tmp, tmp0);
 			  /* add 3(n+s) */
-			  sprintf (string, "%d", 3 * (n + s));
-			  mref_build (tmp0, ST_RATIONAL, string);
-			  mref_add (tmp, tmp, tmp0);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp0, 3 * (n + s), 1);
+			  mpq_add (tmp, tmp, tmp0);
+			  mpq_mul (b, b, tmp);
 
 			  /* div (s) */
-			  sprintf (string, "%d", s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, s, 1);
+			  mpq_div (b, b, tmp);
 			  /* div (n+s) */
-			  sprintf (string, "%d", n + s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, n + s, 1);
+			  mpq_div (b, b, tmp);
 			  /* div (2s-1) */
-			  sprintf (string, "%d", 2 * s - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * s - 1, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
 		      if (p - n - 1 >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul n */
-			  sprintf (string, "%d", n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (2n-1) */
-			  sprintf (string, "%d", 2 * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2 */
-			  sprintf (string, "%d", 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 
 		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
@@ -1747,22 +1690,19 @@ Y_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_v
 			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul n */
-			  sprintf (string, "%d", n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (4n^2-1) */
-			  sprintf (string, "%d", 4 * n * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 4 * n * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2(2s+1) */
-			  sprintf (string, "%d", 2 * (2 * s + 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 
 		      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
@@ -1771,111 +1711,102 @@ Y_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul -2 */
-			  sprintf (string, "%d", - 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, - 2, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (4n^2-1) */
-			  sprintf (string, "%d", 4 * n * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 4 * n * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 3 */
-			  sprintf (string, "%d", 3);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 3, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* mul comb (n+s,n+1) */
 		      comb (tmp, n + s, n + 1);
-		      mref_mul (a, a, tmp);
+		      mpq_mul (a, a, tmp);
 		      /* div (n+1) */
-		      sprintf (string, "%d", n + 1);
-		      mref_build (tmp, ST_RATIONAL, string);
-		      mref_div (a, a, tmp);
+		      mpq_set_si (tmp, n + 1, 1);
+		      mpq_div (a, a, tmp);
 
 		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mref_add ((*cur), (*cur), a);
+		      mpq_add ((*cur), (*cur), a);
 
 		      /* Qnpq */
-		      mref_build (a, ST_RATIONAL, "0");
+		      mpq_set_ui (a, 0, 1);
 		      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
 		      if (p - n>= 0
 			  && q - s - 1 >= 0)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul s */
-			  sprintf (string, "%d", s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, s, 1);
+			  mpq_mul (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* Qnpq : 2nd term Ps(q-s)(p-n) */
 		      if (p - n >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul -3 */
-			  sprintf (string, "%d", - 3);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, - 3, 1);
+			  mpq_mul (b, b, tmp);
 
 			  /* div (2ns) */
-			  sprintf (string, "%d", 2 * n * s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n * s, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* mul comb (n+s,n+1) */
 		      comb (tmp, n + s, n + 1);
-		      mref_mul (a, a, tmp);
+		      mpq_mul (a, a, tmp);
 		      /* div (n+1) */
-		      sprintf (string, "%d", n + 1);
-		      mref_build (tmp, ST_RATIONAL, string);
-		      mref_div (a, a, tmp);
+		      mpq_set_si (tmp, n + 1, 1);
+		      mpq_div (a, a, tmp);
 
 		      cur = coef_q + pointer_npq (nmax, n, p, q);
-		      mref_add ((*cur), (*cur), a);
+		      mpq_add ((*cur), (*cur), a);
 		    }
 		  /* Vnpq : 1st term Pnpq */
 		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mref_add ((*cur), (*cur), (*cur0));
+		  mpq_add ((*cur), (*cur), (*cur0));
 		}
 	    }
 	}
     }
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
-  mref_free (tmp0);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+  mpq_clear (tmp0);
 }
 
 void
-XC_problem (int nmax, mref_t *coef_q)
+XC_problem (int nmax, mpq_t *coef_q)
 {
-  char string [20];
   int i;
   int n, p, q, s;
 
-  mref_t *cur;
-  mref_t *cur0;
-  mref_t a, b;
-  mref_t tmp;
+  mpq_t *cur;
+  mpq_t *cur0;
+  mpq_t a, b;
+  mpq_t tmp;
 
 
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
 
   for (i=1; i <= nmax; i++)
     {
@@ -1888,7 +1819,7 @@ XC_problem (int nmax, mref_t *coef_q)
 		{
 		  /* clear Qnpq */
 		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  for (s=0; s <= q; s++)
 		    {
@@ -1899,22 +1830,20 @@ XC_problem (int nmax, mref_t *coef_q)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mref_copy (a, (*cur0));
+			  mpq_set (a, (*cur0));
 
 			  /* mul comb (n+s,n) */
 			  comb (tmp, n + s, n);
-			  mref_mul (a, a, tmp);
+			  mpq_mul (a, a, tmp);
 			  /* mul (s) */
-			  sprintf (string, "%d", s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (a, a, tmp);
+			  mpq_set_si (tmp, s, 1);
+			  mpq_mul (a, a, tmp);
 			  /* div (n+1) */
-			  sprintf (string, "%d", n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, n + 1, 1);
+			  mpq_div (a, a, tmp);
 
 			  cur = coef_q + pointer_npq (nmax, n, p, q);
-			  mref_add ((*cur), (*cur), a);
+			  mpq_add ((*cur), (*cur), a);
 			}
 		    }
 		}
@@ -1922,31 +1851,30 @@ XC_problem (int nmax, mref_t *coef_q)
 	}
     }
 
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
 }
 
 void
-YM_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
+YM_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
 {
-  char string [20];
   int i;
   int n, p, q, s;
 
-  mref_t *cur;
-  mref_t *cur0;
-  mref_t a, b;
-  mref_t tmp;
-  mref_t tmp0;
-  mref_t tmp1;
+  mpq_t *cur;
+  mpq_t *cur0;
+  mpq_t a, b;
+  mpq_t tmp;
+  mpq_t tmp0;
+  mpq_t tmp1;
 
 
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
-  tmp0 = mref_new ();
-  tmp1 = mref_new ();
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+  mpq_init (tmp0);
+  mpq_init (tmp1);
 
   for (i=1; i <= nmax; i++)
     {
@@ -1959,13 +1887,13 @@ YM_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 		{
 		  /* clear Pnpq, Vnpq and Qnpq */
 		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  for (s=1; s <= q; s++)
 		    {
@@ -1975,101 +1903,86 @@ YM_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (a, (*cur0));
+			  mpq_set (a, (*cur0));
 
 			  /* mul comb (n+s,n+1) */
 			  comb (tmp, n + s, n + 1);
-			  mref_mul (a, a, tmp);
+			  mpq_mul (a, a, tmp);
 			  /* mul (2n) */
-			  sprintf (string, "%d", 2 * n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (a, a, tmp);
+			  mpq_set_si (tmp, 2 * n, 1);
+			  mpq_mul (a, a, tmp);
 			  /* div (n+1) */
-			  sprintf (string, "%d", n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, n + 1, 1);
+			  mpq_div (a, a, tmp);
 			  /* div (2n+3) */
-			  sprintf (string, "%d", 2 * n + 3);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, 2 * n + 3, 1);
+			  mpq_div (a, a, tmp);
 
 			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mref_add ((*cur), (*cur), a);
+			  mpq_add ((*cur), (*cur), a);
 			}
 
 		      /* Pnpq */
-		      mref_build (a, ST_RATIONAL, "0");
+		      mpq_set_ui (a, 0, 1);
 		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
 		      if (p - n + 1 >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul (2n+1) */
-			  sprintf (string, "%d", 2 * n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n + 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2 */
-			  sprintf (string, "%d", 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2, 1);
+			  mpq_div (b, b, tmp);
 
 			  /* mul (ns+4)(n+s)-2(ns+1)^2 */
 			  /* calc -2(ns+1)^2 */
-			  sprintf (string, "%d", (n * s + 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_build (tmp0, ST_RATIONAL, string);
-			  mref_mul (tmp, tmp, tmp0);
-			  sprintf (string, "%d", - 2);
-			  mref_build (tmp0, ST_RATIONAL, string);
-			  mref_mul (tmp, tmp, tmp0);
+			  mpq_set_si (tmp, (n * s + 1), 1);
+			  mpq_set_si (tmp0, (n * s + 1), 1);
+			  mpq_mul (tmp, tmp, tmp0);
+			  mpq_set_si (tmp0, - 2, 1);
+			  mpq_mul (tmp, tmp, tmp0);
 			  /* add (ns+4)(n+s) */
-			  sprintf (string, "%d", n + s);
-			  mref_build (tmp0, ST_RATIONAL, string);
-			  sprintf (string, "%d", n * s + 4);
-			  mref_build (tmp1, ST_RATIONAL, string);
-			  mref_mul (tmp0, tmp0, tmp1);
-			  mref_add (tmp, tmp, tmp0);
+			  mpq_set_si (tmp0, n + s, 1);
+			  mpq_set_si (tmp1, n * s + 4, 1);
+			  mpq_mul (tmp0, tmp0, tmp1);
+			  mpq_add (tmp, tmp, tmp0);
 			  /* mul it with b */
-			  mref_mul (b, b, tmp);
+			  mpq_mul (b, b, tmp);
 
 			  /* div (s) */
-			  sprintf (string, "%d", s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, s, 1);
+			  mpq_div (b, b, tmp);
 			  /* div (2s-1) */
-			  sprintf (string, "%d", 2 * s - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * s - 1, 1);
+			  mpq_div (b, b, tmp);
 			  /* div (n+s) */
-			  sprintf (string, "%d", n + s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, n + s, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
 		      if (p - n - 1 >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul n */
-			  sprintf (string, "%d", n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (2n-1) */
-			  sprintf (string, "%d", 2 * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2 */
-			  sprintf (string, "%d", 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 
 		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
@@ -2078,22 +1991,19 @@ YM_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_v
 			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul n */
-			  sprintf (string, "%d", n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (4n^2-1) */
-			  sprintf (string, "%d", 4 * n * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 4 * n * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2(2s+1) */
-			  sprintf (string, "%d", 2 * (2 * s + 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 
 		      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
@@ -2102,103 +2012,97 @@ YM_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul -(4n^2-1) */
-			  sprintf (string, "%d", - (4 * n * n - 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, - (4 * n * n - 1), 1);
+			  mpq_mul (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* mul comb (n+s,n+1) */
 		      comb (tmp, n + s, n + 1);
-		      mref_mul (a, a, tmp);
+		      mpq_mul (a, a, tmp);
 		      /* div (n+1) */
-		      sprintf (string, "%d", n + 1);
-		      mref_build (tmp, ST_RATIONAL, string);
-		      mref_div (a, a, tmp);
+		      mpq_set_si (tmp, n + 1, 1);
+		      mpq_div (a, a, tmp);
 
 		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mref_add ((*cur), (*cur), a);
+		      mpq_add ((*cur), (*cur), a);
 
 		      /* Qnpq */
-		      mref_build (a, ST_RATIONAL, "0");
+		      mpq_set_ui (a, 0, 1);
 		      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
 		      if (p - n>= 0
 			  && q - s - 1 >= 0)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul s */
-			  sprintf (string, "%d", s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, s, 1);
+			  mpq_mul (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* Qnpq : 2nd term Ps(q-s)(p-n) */
 		      if (p - n >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* div -(ns) */
-			  sprintf (string, "%d", - n * s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, - n * s, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* mul comb (n+s,n+1) */
 		      comb (tmp, n + s, n + 1);
-		      mref_mul (a, a, tmp);
+		      mpq_mul (a, a, tmp);
 		      /* div (n+1) */
-		      sprintf (string, "%d", n + 1);
-		      mref_build (tmp, ST_RATIONAL, string);
-		      mref_div (a, a, tmp);
+		      mpq_set_si (tmp, n + 1, 1);
+		      mpq_div (a, a, tmp);
 
 		      cur = coef_q + pointer_npq (nmax, n, p, q);
-		      mref_add ((*cur), (*cur), a);
+		      mpq_add ((*cur), (*cur), a);
 		    }
 		  /* Vnpq : 1st term Pnpq */
 		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mref_add ((*cur), (*cur), (*cur0));
+		  mpq_add ((*cur), (*cur), (*cur0));
 		}
 	    }
 	}
     }
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
-  mref_free (tmp0);
-  mref_free (tmp1);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+  mpq_clear (tmp0);
+  mpq_clear (tmp1);
 }
 
 void
-Z_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
+Z_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
 {
-  char string [20];
   int i;
   int n, p, q, s;
 
-  mref_t *cur;
-  mref_t *cur0;
-  mref_t a, b;
-  mref_t tmp;
-  mref_t tmp0;
-  mref_t tmp1;
+  mpq_t *cur;
+  mpq_t *cur0;
+  mpq_t a, b;
+  mpq_t tmp;
+  mpq_t tmp0;
+  mpq_t tmp1;
 
 
-  a = mref_new ();
-  b = mref_new ();
-  tmp = mref_new ();
-  tmp0 = mref_new ();
-  tmp1 = mref_new ();
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+  mpq_init (tmp0);
+  mpq_init (tmp1);
 
   for (i=1; i <= nmax; i++)
     {
@@ -2211,13 +2115,13 @@ Z_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 		{
 		  /* clear Pnpq, Vnpq and Qnpq */
 		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mref_build ((*cur), ST_RATIONAL, "0");
+		  mpq_set_ui ((*cur), 0, 1);
 
 		  for (s=1; s <= q; s++)
 		    {
@@ -2227,103 +2131,89 @@ Z_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (a, (*cur0));
+			  mpq_set (a, (*cur0));
 
 			  /* mul comb (n+s,n+2) */
 			  comb (tmp, n + s, n + 2);
-			  mref_mul (a, a, tmp);
+			  mpq_mul (a, a, tmp);
 			  /* mul (2n) */
-			  sprintf (string, "%d", 2 * n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (a, a, tmp);
+			  mpq_set_si (tmp, 2 * n, 1);
+			  mpq_mul (a, a, tmp);
 			  /* div (n+1) */
-			  sprintf (string, "%d", n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, n + 1, 1);
+			  mpq_div (a, a, tmp);
 			  /* div (2n+3) */
-			  sprintf (string, "%d", 2 * n + 3);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (a, a, tmp);
+			  mpq_set_si (tmp, 2 * n + 3, 1);
+			  mpq_div (a, a, tmp);
 
 			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mref_add ((*cur), (*cur), a);
+			  mpq_add ((*cur), (*cur), a);
 			}
 
 		      /* Pnpq */
-		      mref_build (a, ST_RATIONAL, "0");
+		      mpq_set_ui (a, 0, 1);
 		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
 		      if (p - n + 1 >= 0)
 			{
-			  mref_build (b, ST_RATIONAL, "1");
+			  mpq_set_ui (b, 1, 1);
 			  /* calc (ns+16)(n+s) */
-			  sprintf (string, "%d", n * s + 16);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
-			  sprintf (string, "%d", n + s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n * s + 16, 1);
+			  mpq_mul (b, b, tmp);
+			  mpq_set_si (tmp, n + s, 1);
+			  mpq_mul (b, b, tmp);
 
 			  /* calc -2(ns+1)(ns+4) */
-			  mref_build (tmp, ST_RATIONAL, "-2");
-			  sprintf (string, "%d", n * s + 1);
-			  mref_build (tmp0, ST_RATIONAL, string);
-			  mref_mul (tmp, tmp, tmp0);
-			  sprintf (string, "%d", n * s + 4);
-			  mref_build (tmp0, ST_RATIONAL, string);
-			  mref_mul (tmp, tmp, tmp0);
+			  mpq_set_si (tmp, -2, 1);
+			  mpq_set_si (tmp0, n * s + 1, 1);
+			  mpq_mul (tmp, tmp, tmp0);
+			  mpq_set_si (tmp0, n * s + 4, 1);
+			  mpq_mul (tmp, tmp, tmp0);
 
 			  /* calc (ns+16)(n+s)-2(ns+1)(ns+4) */
-			  mref_add (b, b, tmp);
+			  mpq_add (b, b, tmp);
 
 			  /* mul (2n+1) */
-			  sprintf (string, "%d", 2 * n + 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n + 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2 */
-			  mref_build (tmp, ST_RATIONAL, "2");
-			  mref_div (b, b, tmp);
+			  mpq_set_ui (tmp, 2, 1);
+			  mpq_div (b, b, tmp);
 
 			  /* div (s) */
-			  sprintf (string, "%d", s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, s, 1);
+			  mpq_div (b, b, tmp);
 			  /* div (2s-1) */
-			  sprintf (string, "%d", 2 * s - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * s - 1, 1);
+			  mpq_div (b, b, tmp);
 			  /* div (n+s) */
-			  sprintf (string, "%d", n + s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, n + s, 1);
+			  mpq_div (b, b, tmp);
 
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n + 1);
 
-			  mref_mul (b, b, (*cur0));
+			  mpq_mul (b, b, (*cur0));
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
 		      if (p - n - 1 >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul n */
-			  sprintf (string, "%d", n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (2n-1) */
-			  sprintf (string, "%d", 2 * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 2 * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2 */
-			  sprintf (string, "%d", 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 
 		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
@@ -2332,22 +2222,19 @@ Z_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_v
 			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul n */
-			  sprintf (string, "%d", n);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, n, 1);
+			  mpq_mul (b, b, tmp);
 			  /* mul (4n^2-1) */
-			  sprintf (string, "%d", 4 * n * n - 1);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, 4 * n * n - 1, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div 2(2s+1) */
-			  sprintf (string, "%d", 2 * (2 * s + 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 
 		      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
@@ -2356,85 +2243,79 @@ Z_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n + 1);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul -2(4n^2-1) */
-			  sprintf (string, "%d", - 2 * (4 * n * n - 1));
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, - 2 * (4 * n * n - 1), 1);
+			  mpq_mul (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* mul comb (n+s,n+2) */
 		      comb (tmp, n + s, n + 2);
-		      mref_mul (a, a, tmp);
+		      mpq_mul (a, a, tmp);
 		      /* div (n+1) */
-		      sprintf (string, "%d", n + 1);
-		      mref_build (tmp, ST_RATIONAL, string);
-		      mref_div (a, a, tmp);
+		      mpq_set_si (tmp, n + 1, 1);
+		      mpq_div (a, a, tmp);
 
 		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mref_add ((*cur), (*cur), a);
+		      mpq_add ((*cur), (*cur), a);
 
 		      /* Qnpq */
-		      mref_build (a, ST_RATIONAL, "0");
+		      mpq_set_ui (a, 0, 1);
 		      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
 		      if (p - n>= 0
 			  && q - s - 1 >= 0)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* mul s */
-			  sprintf (string, "%d", s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, s, 1);
+			  mpq_mul (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* Qnpq : 2nd term Ps(q-s)(p-n) */
 		      if (p - n >= 0)
 			{
 			  cur0 = coef_p
 			    + pointer_npq (nmax, s, q - s, p - n);
-			  mref_copy (b, (*cur0));
+			  mpq_set (b, (*cur0));
 
 			  /* div -2 */
-			  sprintf (string, "%d", - 2);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_mul (b, b, tmp);
+			  mpq_set_si (tmp, - 2, 1);
+			  mpq_mul (b, b, tmp);
 			  /* div (ns) */
-			  sprintf (string, "%d", n * s);
-			  mref_build (tmp, ST_RATIONAL, string);
-			  mref_div (b, b, tmp);
+			  mpq_set_si (tmp, n * s, 1);
+			  mpq_div (b, b, tmp);
 
-			  mref_add (a, a, b);
+			  mpq_add (a, a, b);
 			}
 		      /* mul comb (n+s,n+2) */
 		      comb (tmp, n + s, n + 2);
-		      mref_mul (a, a, tmp);
+		      mpq_mul (a, a, tmp);
 		      /* div (n+1) */
-		      sprintf (string, "%d", n + 1);
-		      mref_build (tmp, ST_RATIONAL, string);
-		      mref_div (a, a, tmp);
+		      mpq_set_si (tmp, n + 1, 1);
+		      mpq_div (a, a, tmp);
 
 		      cur = coef_q + pointer_npq (nmax, n, p, q);
-		      mref_add ((*cur), (*cur), a);
+		      mpq_add ((*cur), (*cur), a);
 		    }
 		  /* Vnpq : 1st term Pnpq */
 		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
 		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mref_add ((*cur), (*cur), (*cur0));
+		  mpq_add ((*cur), (*cur), (*cur0));
 		}
 	    }
 	}
     }
-  mref_free (a);
-  mref_free (b);
-  mref_free (tmp);
-  mref_free (tmp0);
-  mref_free (tmp1);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+  mpq_clear (tmp0);
+  mpq_clear (tmp1);
 }
 
 
@@ -2448,15 +2329,14 @@ Z_problem (int nmax, mref_t *coef_p, mref_t *coef_v, mref_t *coef_q)
  *   comb
  */
 int
-comb (mref_t comb, int n, int m)
+comb (mpq_t comb, int n, int m)
 {
   int i;
-  mref_t n1;
-  char string [20];
+  mpq_t n1;
 
   if(n < 0 || m < 0 || n < m)
     {
-      mref_build (comb, ST_RATIONAL, "0");      
+      mpq_set_ui (comb, 0, 1);
       return (-1);
     }
 
@@ -2464,23 +2344,21 @@ comb (mref_t comb, int n, int m)
     m = n - m;
 
   /* Create two mrefs */
-  n1 = mref_new ();
+  mpq_init (n1);
 
   /* comb = 1 */
-  mref_build (comb, ST_RATIONAL, "1");
+  mpq_set_ui (comb, 1, 1);
   for (i=1; i <= m; i++)
     {
       /* comb *= (n + 1 - i) */
-      sprintf (string, "%d", n + 1 - i);
-      mref_build (n1, ST_RATIONAL, string);
-      mref_mul (comb, comb, n1);
+      mpq_set_si (n1, n + 1 - i, 1);
+      mpq_mul (comb, comb, n1);
 
       /* comb /= (m + 1 - i) */
-      sprintf (string, "%d", m + 1 - i);
-      mref_build (n1, ST_RATIONAL, string);
-      mref_div (comb, comb, n1);
+      mpq_set_si (n1, m + 1 - i, 1);
+      mpq_div (comb, comb, n1);
     }
-  mref_free (n1);
+  mpq_clear (n1);
 
   return (0);
 }
@@ -2507,4 +2385,19 @@ int
 pointer_mq (int nmax, int m, int q)
 {
   return (m * (nmax + 1) + q);
+}
+
+
+/* output rational number on stdout
+ */
+void
+print_mpq (mpq_t x)
+{
+  mpz_out_str (stdout, 10, mpq_numref (x));
+
+  if (mpz_cmp_ui (mpq_denref (x), 1))
+    {
+      printf ("/");
+      mpz_out_str (stdout, 10, mpq_denref (x));
+    }
 }
