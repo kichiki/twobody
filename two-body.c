@@ -1,6 +1,6 @@
 /* coef of 2-body res functions on Jeffrey & Onishi 1984 JFM vol.139 p.261
  * Copyright (C) 1999 Kengo ICHIKI (kengo@caltech.edu)
- * $Id$
+ * $Id: two-body-JO.c,v 1.3 1999/08/19 01:22:44 ichiki Exp $
  */
 #include <math.h>
 #include <stdio.h> /* printf() fprintf() */
@@ -1371,7 +1371,7 @@ XC_problem (int nmax, ratio *coef_q)
 		      /* q - s >= 0 */
 		      /* Qnpq : Qs(q-s-1)(p-n) */
 		      if (p - n >= 0
-			  || q - s - 1 >= 0)
+			  && q - s - 1 >= 0)
 			{
 			  cur0 = coef_q
 			    + pointer_npq (nmax, s, q - s - 1, p - n);
