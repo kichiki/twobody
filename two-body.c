@@ -1,11 +1,13 @@
 /* coef of 2-body res functions on Jeffrey & Onishi 1984 JFM vol.139 p.261
  * using GMP library
  * Copyright (C) 1999 Kengo ICHIKI (kengo@caltech.edu)
- * $Id$
+ * $Id: two-body-JO-gmp.c,v 3.1 1999/08/27 22:38:37 ichiki Exp $
  */
 #include <stdio.h>
 #include <stdlib.h> /* malloc() free() */
 #include "gmp.h"
+
+#include "../bench.h" /* ptime_ms_d() */
 
 
 /* function prototypes */
@@ -13,494 +15,649 @@ int
 main (void);
 
 void
-make_coef_f (int nmax, mpq_t lambda);
+XA_sum_l (int nmax, mpq_t lambda);
+void
+YA_sum_l (int nmax, mpq_t lambda);
+void
+YB_sum_l (int nmax, mpq_t lambda);
+void
+XC_sum_l (int nmax, mpq_t lambda);
+void
+YC_sum_l (int nmax, mpq_t lambda);
+void
+XG_sum_l (int nmax, mpq_t lambda);
+void
+YG_sum_l (int nmax, mpq_t lambda);
+void
+YH_sum_l (int nmax, mpq_t lambda);
+void
+XM_sum_l (int nmax, mpq_t lambda);
+void
+YM_sum_l (int nmax, mpq_t lambda);
+void
+ZM_sum_l (int nmax, mpq_t lambda);
 
 void
-print_coef_lambda (int nmax, mpq_t *f, mpq_t labmda, char *label);
+XP_sum_l (int nmax, mpq_t lambda);
 void
-print_coef (int nmax, mpq_t *f, char *label);
-
-void
-XAGP (int nmax, mpq_t *fxa, mpq_t *fxg, mpq_t *fxp);
-void
-YABG (int nmax, mpq_t *fya, mpq_t *fyb, mpq_t *fyg);
-void
-XC (int nmax, mpq_t *fxc);
-void
-YCH (int nmax, mpq_t *fyc, mpq_t *fyh);
-void
-XMQ (int nmax, mpq_t *fxm, mpq_t *fxq);
-void
-YM (int nmax, mpq_t *fym);
-void
-ZM (int nmax, mpq_t *fym);
+XQ_sum_l (int nmax, mpq_t lambda);
 
 
 void
-X_problem (int nmax, mpq_t*coef_p, mpq_t*coef_v);
+XC (int nmax);
+
 void
-Y_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q);
+X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p);
 void
-XC_problem (int nmax, mpq_t *coef_q);
+X_v (int n, int p, int q, int inp, int inv, mpq_t coef_v);
 void
-YM_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q);
+X_q (int n, int p, int q, mpq_t coef_q);
+
 void
-Z_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q);
+Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p);
+void
+Y_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v);
+void
+Y_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
+
+void
+YM_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
+void
+YM_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
+void
+YM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
+
+void
+ZM_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
+void
+ZM_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
+void
+ZM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
 
 int
 comb (mpq_t comb, int n, int m);
-int
-pointer_npq (int nmax, int n, int p, int q);
-int
-pointer_mq (int nmax, int m, int q);
 
 void
 print_mpq (mpq_t x);
+void
+fprint_mpq (FILE *out, mpq_t x);
+
+int
+search_results (char *file, int n, int p, int q, mpq_t coef);
+void
+append_result (char *file, int n, int p, int q, mpq_t coef);
+
 
 int
 main (void)
 {
   int nmax;
   mpq_t lambda;
+  double time;
 
 
-  nmax = 50;
+  nmax = 100;
 
   mpq_init (lambda);
   mpq_set_ui (lambda, 1, 1);
 
-  make_coef_f (nmax, lambda);
+  /*XC (nmax);*/
+
+  ptime_ms_d();
+
+  XA_sum_l (nmax, lambda);
+  YA_sum_l (nmax, lambda);
+  YB_sum_l (nmax, lambda);
+  XC_sum_l (nmax, lambda);
+  YC_sum_l (nmax, lambda);
+  XG_sum_l (nmax, lambda);
+  YG_sum_l (nmax, lambda);
+  YH_sum_l (nmax, lambda);
+  XM_sum_l (nmax, lambda);
+  YM_sum_l (nmax, lambda);
+  ZM_sum_l (nmax, lambda);
+  XP_sum_l (nmax, lambda);
+  XQ_sum_l (nmax, lambda);
+
+  time = ptime_ms_d();
+
+  fprintf (stdout, "# ptime = %f\n", time);
 
   mpq_clear (lambda);
 
   return 0;
 }
 
+
 void
-make_coef_f (int nmax, mpq_t lambda)
+XA_sum_l (int nmax, mpq_t lambda)
 {
-  mpq_t *fxa;
-  mpq_t *fya;
-  mpq_t *fyb;
-  mpq_t *fxc;
-  mpq_t *fyc;
-  mpq_t *fxg;
-  mpq_t *fyg;
-  mpq_t *fyh;
-  mpq_t *fxm;
-  mpq_t *fym;
-  mpq_t *fzm;
-  mpq_t *fxp;
-  mpq_t *fxq;
-
-  mpq_t *cur;
-  mpq_t a;
-  mpq_t b;
-  mpq_t lq;
-
-  int i;
-  int m, q;
-
-
-  mpq_init (a);
-  mpq_init (b);
-  mpq_init (lq);
-
-
-  fxa = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fya = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fyb = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fxc = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fyc = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fxg = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fyg = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fyh = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fxm = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fym = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fzm = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fxp = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-  fxq = (mpq_t *) malloc (sizeof (mpq_t)
-			   * (nmax + 1) * (nmax + 1));
-
-  /* zero clear */
-  for (m=0; m <= nmax; m++)
-    {
-      for (q=0; q <= nmax; q++)
-	{
-	  i = pointer_mq (nmax, m, q);
-
-	  cur = fxa + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fya + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fyb + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fxc + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fyc + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fxg + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fyg + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fyh + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fxm + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fym + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fzm + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fxp + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	  cur = fxq + i;
-	  mpq_init (*cur);
-	  mpq_set_ui ((*cur), 0, 1);
-	}
-    }
-
-  /* OK */
-  XAGP (nmax, fxa, fxg, fxp);
-  YABG (nmax, fya, fyb, fyg);
-  XC (nmax, fxc);
-  YCH (nmax, fyc, fyh);
-  YM (nmax, fym);
-  ZM (nmax, fzm);
-  /* NG? */
-  XMQ (nmax, fxm, fxq);
-
-
-  /* print coef f_m
-  print_coef (nmax, fxa, "XAf");
-  print_coef (nmax, fya, "YAf");
-  print_coef (nmax, fyb, "YBf");
-  print_coef (nmax, fxc, "XCf");
-  print_coef (nmax, fyc, "YCf");
-  print_coef (nmax, fxg, "XGf");
-  print_coef (nmax, fyg, "YGf");
-  print_coef (nmax, fyh, "YHf");
-  print_coef (nmax, fxm, "XMf");
-  print_coef (nmax, fym, "YMf");
-  print_coef (nmax, fzm, "ZMf");
-  print_coef (nmax, fxp, "XPf");
-  print_coef (nmax, fxq, "XQf"); */
-
-  /* calc coef f_m and print */
-  print_coef_lambda (nmax, fxa, lambda, "XAf");
-  print_coef_lambda (nmax, fya, lambda, "YAf");
-  print_coef_lambda (nmax, fyb, lambda, "YBf");
-  print_coef_lambda (nmax, fxc, lambda, "XCf");
-  print_coef_lambda (nmax, fyc, lambda, "YCf");
-  print_coef_lambda (nmax, fxg, lambda, "XGf");
-  print_coef_lambda (nmax, fyg, lambda, "YGf");
-  print_coef_lambda (nmax, fyh, lambda, "YHf");
-  print_coef_lambda (nmax, fxm, lambda, "XMf");
-  print_coef_lambda (nmax, fym, lambda, "YMf");
-  print_coef_lambda (nmax, fzm, lambda, "ZMf");
-  print_coef_lambda (nmax, fxp, lambda, "XPf");
-  print_coef_lambda (nmax, fxq, lambda, "XQf");
-
-
-  /* free */
-  mpq_clear (a);
-  mpq_clear (b);
-  mpq_clear (lq);
-
-  for (m=0; m <= nmax; m++)
-    {
-      for (q=0; q <= nmax; q++)
-	{
-	  i = pointer_mq (nmax, m, q);
-
-	  cur = fxa + i;
-	  mpq_clear (*cur);
-	  cur = fya + i;
-	  mpq_clear (*cur);
-	  cur = fyb + i;
-	  mpq_clear (*cur);
-	  cur = fxc + i;
-	  mpq_clear (*cur);
-	  cur = fyc + i;
-	  mpq_clear (*cur);
-	  cur = fxg + i;
-	  mpq_clear (*cur);
-	  cur = fyg + i;
-	  mpq_clear (*cur);
-	  cur = fyh + i;
-	  mpq_clear (*cur);
-	  cur = fxm + i;
-	  mpq_clear (*cur);
-	  cur = fym + i;
-	  mpq_clear (*cur);
-	  cur = fzm + i;
-	  mpq_clear (*cur);
-	  cur = fxp + i;
-	  mpq_clear (*cur);
-	  cur = fxq + i;
-	  mpq_clear (*cur);
-	}
-    }
-  free (fxa);
-  free (fya);
-  free (fyb);
-  free (fxc);
-  free (fyc);
-  free (fxg);
-  free (fyg);
-  free (fyh);
-  free (fxm);
-  free (fym);
-  free (fzm);
-  free (fxp);
-  free (fxq);
-}
-
-/* calc coef summed up with a lambda and print out
- * INPUT
- *   nmax :
- *   f [nmax][nmax] :
- *   labmda
- *   label
- * OUTPUT (stdout)
- */
-void
-print_coef_lambda (int nmax, mpq_t *f, mpq_t lambda, char *label)
-{
-  mpq_t *cur;
-  mpq_t a;
-  mpq_t b;
-  mpq_t lq;
-
-  int i;
-  int m, q;
-
-
-  mpq_init (a);
-  mpq_init (b);
-  mpq_init (lq);
-
-  for (m=0; m <= nmax; m++)
-    {
-      mpq_set_ui (a, 0, 1);
-      for (q=0, mpq_set_ui (lq, 1, 1);
-	   q <= nmax;
-	   q++, mpq_mul (lq, lq, lambda))
-	{
-	  i = pointer_mq (nmax, m, q);
-
-	  cur = f + i;
-	  mpq_set (b, (*cur));
-	  mpq_mul (b, b, lq);
-	  mpq_add (a, a, b);
-	}
-      fprintf (stdout, "%s [%d] = ",
-	       label,
-	       m);
-      print_mpq (a);
-      fprintf (stdout, "\n");
-    }
-
-  mpq_clear (a);
-  mpq_clear (b);
-  mpq_clear (lq);
-}
-
-/* print coef (without sum up)
- * INPUT
- *   nmax :
- *   f [nmax][nmax] :
- *   labmda
- *   label
- * OUTPUT (stdout)
- */
-void
-print_coef (int nmax, mpq_t *f, char *label)
-{
-  mpq_t *cur;
-
-  int i;
-  int m, q;
-
-  for (m=0; m <= nmax; m++)
-    {
-      fprintf (stdout, "%s_%d = ", label, m);
-      for (q=0; q <= nmax; q++)
-	{
-	  i = pointer_mq (nmax, m, q);
-
-	  cur = f + i;
-	  if (mpz_cmp_si (mpq_numref (*cur), 0))
-          /*if (mref_notzero (*cur))*/
-	    {
-	      print_mpq (*cur);
-	      fprintf (stdout, " l^%d ", q);
-	    }
-	}
-      fprintf (stdout, "\n");
-    }
-}
-
-/* calc coef f_m for XA, XG and XP
- * INPUT
- *   nmax
- * OUTPUT
- *   fxa [(nmax + 1) * (nmax + 1)]
- *   fxg [(nmax + 1) * (nmax + 1)]
- *   fxp [(nmax + 1) * (nmax + 1)]
- */
-void
-XAGP (int nmax, mpq_t *fxa, mpq_t *fxg, mpq_t *fxp)
-{
-  int i;
-  int n, p, q;
-  int k;
-
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
   mpq_t two;
   mpq_t two_k;
-  mpq_t *coef_p;
-  mpq_t *coef_v;
-  mpq_t *cur;
-  mpq_t a, b;
-  mpq_t tmp;
 
-
+  mpq_init (f);
+  mpq_init (coef_p);
   mpq_init (two);
   mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  X_p (1, k - q, q, 1, 1, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	/* mul 2^k */
+	mpq_mul (f, f, two_k);
+
+      fprintf (stdout, "XAf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+YA_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  Y_p (1, k - q, q, 0, 1, 1, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	/* mul 2^k */
+	mpq_mul (f, f, two_k);
+
+      fprintf (stdout, "YAf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+YB_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_q;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_q);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  Y_q (1, k - q, q, 0, 1, 1, coef_q);
+
+	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
+	      mpq_add (f, f, coef_q);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	{
+	  /* mul 2^k */
+	  mpq_mul (f, f, two_k);
+	  /* mul 2 */
+	  mpq_set_ui (coef_q, 2, 1);
+	  mpq_mul (f, f, coef_q);
+	}
+
+      fprintf (stdout, "YBf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_q);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+XC_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_q;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_q);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  X_q (1, k - q, q, coef_q);
+
+	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_q, coef_q, two_k);
+	      mpq_add (f, f, coef_q);
+	    }
+	}
+      fprintf (stdout, "XCf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_q);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+YC_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_q;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_q);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  Y_q (1, k - q, q, 1, 0, 0, coef_q);
+
+	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
+	      mpq_add (f, f, coef_q);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	/* mul 2^k */
+	mpq_mul (f, f, two_k);
+
+      fprintf (stdout, "YCf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_q);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+XG_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  X_p (2, k - q, q, 1, 1, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	{
+	  /* mul 2^k */
+	  mpq_mul (f, f, two_k);
+	  /* mul 3 */
+	  mpq_set_ui (coef_p, 3, 1);
+	  mpq_mul (f, f, coef_p);
+	  /* mul 4 */
+	  mpq_set_ui (coef_p, 4, 1);
+	  mpq_div (f, f, coef_p);
+	}
+
+      fprintf (stdout, "XGf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+YG_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  Y_p (2, k - q, q, 0, 1, 1, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	{
+	  /* mul 2^k */
+	  mpq_mul (f, f, two_k);
+	  /* mul 3 */
+	  mpq_set_ui (coef_p, 3, 1);
+	  mpq_mul (f, f, coef_p);
+	  /* div 4 */
+	  mpq_set_ui (coef_p, 4, 1);
+	  mpq_div (f, f, coef_p);
+	}
+
+      fprintf (stdout, "YGf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+YH_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  Y_p (2, k - q, q, 1, 0, 0, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	{
+	  /* mul 2^k */
+	  mpq_mul (f, f, two_k);
+	  /* mul -3 */
+	  mpq_set_si (coef_p, -3, 1);
+	  mpq_mul (f, f, coef_p);
+	  /* div 8 */
+	  mpq_set_ui (coef_p, 8, 1);
+	  mpq_div (f, f, coef_p);
+	}
+
+      fprintf (stdout, "YHf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+XM_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  X_p (2, k - q, q, 2, 2, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	{
+	  /* mul 2^k */
+	  mpq_mul (f, f, two_k);
+	}
+
+      fprintf (stdout, "XMf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+YM_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  YM_p (2, k - q, q, 0, 2, 2, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	{
+	  /* mul 2^k */
+	  mpq_mul (f, f, two_k);
+	}
+
+      fprintf (stdout, "YMf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+ZM_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      mpq_set_ui (f, 0, 1);
+      for (q = 0; q <= k; q ++)
+	{
+	  ZM_p (2, k - q, q, 0, 2, 2, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	      mpq_add (f, f, coef_p);
+	}
+      if (mpz_cmp_si (mpq_numref (f), 0))
+	{
+	  /* mul 2^k */
+	  mpq_mul (f, f, two_k);
+	}
+
+      fprintf (stdout, "ZMf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+void
+XP_sum_l (int nmax, mpq_t lambda)
+{
+  int k, q, n;
+  mpq_t f;
+  mpq_t a, b;
+  mpq_t tmp;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
   mpq_init (a);
   mpq_init (b);
   mpq_init (tmp);
-
-  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  if (coef_p == NULL
-      || coef_v == NULL)
-    {
-      fprintf (stderr, "cannot alloacted coef_q [%d]\n",
-	       (nmax + 1) * (nmax + 1) * (nmax + 1));
-      exit (-1);
-    }
-
-  /* zero clear */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_v + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-	    }
-	}
-    }
-  /* initial condition */
-  cur = coef_p + pointer_npq (nmax, 1, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  cur = coef_v + pointer_npq (nmax, 1, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  X_problem (nmax, coef_p, coef_v);
-
+  mpq_init (two);
+  mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  /* XA */
-  n = 1;
   for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      for(q=0; q <= nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-
-	      cur = fxa + pointer_mq (nmax, k, q);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  /* XG */
-  n = 2;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q <= nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-	      /* mul 3 */
-	      mpq_set_ui (tmp, 3, 1);
-	      mpq_mul (a, a, tmp);
-	      /* mul 4 */
-	      mpq_set_ui (tmp, 4, 1);
-	      mpq_div (a, a, tmp);
-
-	      cur = fxg + pointer_mq (nmax, k, q);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  /* XP */
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=1; q <= k - 1; q++)
+      mpq_set_ui (f, 0, 1);
+      for (q = 1; q <= k - 1; q ++)
 	{
 	  mpq_set_ui (a, 0, 1);
 	  for (n=1; n <= (q + 1) / 2; n++)
 	    {
-	      if (q - n >= 0
-		  && k - q - 1 >= 0)
+	      X_p (n, q - n, k - q - 1, 1, 1, b);
+
+	      if (mpz_cmp_si (mpq_numref (b), 0))
 		{
-		  cur = coef_p + pointer_npq (nmax, n, q - n, k - q - 1);
-		  mpq_set (b, (*cur));
 		  /* mul (two_k) */
 		  mpq_mul (b, b, two_k);
 		  /* mul 3 */
@@ -513,596 +670,55 @@ XAGP (int nmax, mpq_t *fxa, mpq_t *fxg, mpq_t *fxp)
 		  mpq_add (a, a, b);
 		}
 	    }
-	  cur = fxp + pointer_mq (nmax, k, q);
-	  mpq_set ((*cur), a);
+	  if (mpz_cmp_si (mpq_numref (a), 0))
+	      mpq_add (f, f, a);
 	}
+
+      fprintf (stdout, "XPf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
     }
 
-  mpq_clear (two);
-  mpq_clear (two_k);
+  mpq_clear (f);
   mpq_clear (a);
   mpq_clear (b);
   mpq_clear (tmp);
-  /* free coef_p,v */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_clear (*cur);
-	      cur = coef_v + i;
-	      mpq_clear (*cur);
-	    }
-	}
-    }
-  free (coef_p);
-  free (coef_v);
+  mpq_clear (two);
+  mpq_clear (two_k);
 }
 
-/* calc coef f_m for YA, YB and YG
- * INPUT
- *   nmax
- * OUTPUT
- *   fya [(nmax + 1) * (nmax + 1)]
- *   fyb [(nmax + 1) * (nmax + 1)]
- *   fyg [(nmax + 1) * (nmax + 1)]
- */
 void
-YABG (int nmax, mpq_t *fya, mpq_t *fyb, mpq_t *fyg)
+XQ_sum_l (int nmax, mpq_t lambda)
 {
-  int i;
-  int n, p, q;
-  int k;
-
-  mpq_t two;
-  mpq_t two_k;
-  mpq_t *coef_p;
-  mpq_t *coef_v;
-  mpq_t *coef_q;
-  mpq_t *cur;
+  int k, q, n;
+  mpq_t f;
   mpq_t a, b;
   mpq_t tmp;
+  mpq_t two;
+  mpq_t two_k;
 
-
-  mpq_init (two);
-  mpq_init (two_k);
+  mpq_init (f);
   mpq_init (a);
   mpq_init (b);
   mpq_init (tmp);
-
-  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  if (coef_p == NULL
-      || coef_v == NULL
-      || coef_q == NULL)
-    {
-      fprintf (stderr, "cannot alloacted coef_q [%d]\n",
-	       (nmax + 1) * (nmax + 1) * (nmax + 1));
-      exit (-1);
-    }
-
-  /* zero clear */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_v + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_q + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-	    }
-	}
-    }
-  /* initial condition */
-  cur = coef_p + pointer_npq (nmax, 1, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  cur = coef_v + pointer_npq (nmax, 1, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  Y_problem (nmax, coef_p, coef_v, coef_q);
-
-
-  mpq_set_ui (two, 2, 1);
-  /* YA */
-  n = 1;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q <= nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-
-	      cur = fya + pointer_mq (nmax, k, q);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  /* YB */
-  n = 1;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q <= nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_q + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-	      /* mul 2 */
-	      mpq_set_ui (tmp, 2, 1);
-	      mpq_mul (a, a, tmp);
-
-	      cur = fyb + pointer_mq (nmax, k, q);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  /* YG */
-  n = 2;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q <= nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-	      /* mul 3 */
-	      mpq_set_ui (tmp, 3, 1);
-	      mpq_mul (a, a, tmp);
-	      /* div 4 */
-	      mpq_set_ui (tmp, 4, 1);
-	      mpq_div (a, a, tmp);
-
-	      cur = fyg + pointer_mq (nmax, k, q);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  mpq_clear (two);
-  mpq_clear (two_k);
-  mpq_clear (a);
-  mpq_clear (b);
-  mpq_clear (tmp);
-  /* free coef_p,v,q */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_clear (*cur);
-	      cur = coef_v + i;
-	      mpq_clear (*cur);
-	      cur = coef_q + i;
-	      mpq_clear (*cur);
-	    }
-	}
-    }
-  free (coef_p);
-  free (coef_v);
-  free (coef_q);
-}
-
-/* calc coef f_m for XC
- * INPUT
- *   nmax
- * OUTPUT
- *   fxc [(nmax + 1) * (nmax + 1)]
- */
-void
-XC (int nmax, mpq_t *fxc)
-{
-  int i;
-  int n, p, q;
-  int k;
-
-  mpq_t two;
-  mpq_t two_k;
-  mpq_t *coef_q;
-  mpq_t *cur;
-  mpq_t a;
-  mpq_t tmp;
-
-
   mpq_init (two);
   mpq_init (two_k);
-  mpq_init (a);
-  mpq_init (tmp);
-
-  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  if (coef_q == NULL)
-    {
-      fprintf (stderr, "cannot alloacted coef_q [%d]\n",
-	       (nmax + 1) * (nmax + 1) * (nmax + 1));
-      exit (-1);
-    }
-
-  /* init and zero clear */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_q + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-	    }
-	}
-    }
-
-
-  /* initial condition */
-  cur = coef_q + pointer_npq (nmax, 1, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  XC_problem (nmax, coef_q);
-
 
   mpq_set_ui (two, 2, 1);
-  /* XC */
-  n = 1;
   for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      for(q=0; q </*=*/ nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_q + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-
-	      if (k % 2 == 0)
-		cur = fxc + pointer_mq (nmax, k, q);
-	      else
-		cur = fxc + pointer_mq (nmax, k, q + 1);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  mpq_clear (two);
-  mpq_clear (two_k);
-  mpq_clear (a);
-  mpq_clear (tmp);
-  /* free coef_q */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_q + i;
-	      mpq_clear (*cur);
-	    }
-	}
-    }
-  free (coef_q);
-}
-
-/* calc coef f_m for YC and YH
- * INPUT
- *   nmax
- * OUTPUT
- *   fyc [(nmax + 1) * (nmax + 1)]
- *   fyh [(nmax + 1) * (nmax + 1)]
- */
-void
-YCH (int nmax, mpq_t *fyc, mpq_t *fyh)
-{
-  int i;
-  int n, p, q;
-  int k;
-
-  mpq_t two;
-  mpq_t two_k;
-  mpq_t *coef_p;
-  mpq_t *coef_v;
-  mpq_t *coef_q;
-  mpq_t *cur;
-  mpq_t a, b;
-  mpq_t tmp;
-
-
-  mpq_init (two);
-  mpq_init (two_k);
-  mpq_init (a);
-  mpq_init (b);
-  mpq_init (tmp);
-
-  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  if (coef_p == NULL
-      || coef_v == NULL
-      || coef_q == NULL)
-    {
-      fprintf (stderr, "cannot alloacted coef_q [%d]\n",
-	       (nmax + 1) * (nmax + 1) * (nmax + 1));
-      exit (-1);
-    }
-
-  /* zero clear */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_v + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_q + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-	    }
-	}
-    }
-  /* initial condition */
-  cur = coef_q + pointer_npq (nmax, 1, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  Y_problem (nmax, coef_p, coef_v, coef_q);
-
-
-  mpq_set_ui (two, 2, 1);
-  /* YC */
-  n = 1;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q </*=*/ nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_q + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-
-	      if (k % 2 == 0)
-		cur = fyc + pointer_mq (nmax, k, q);
-	      else
-		cur = fyc + pointer_mq (nmax, k, q + 1);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  /* YH */
-  n = 2;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q </*=*/ nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-	      /* mul -3 */
-	      mpq_set_si (tmp, -3, 1);
-	      mpq_mul (a, a, tmp);
-	      /* div 8 */
-	      mpq_set_ui (tmp, 8, 1);
-	      mpq_div (a, a, tmp);
-
-	      if (k % 2 == 0)
-		cur = fyh + pointer_mq (nmax, k, q);
-	      else
-		cur = fyh + pointer_mq (nmax, k, q + 1);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  mpq_clear (two);
-  mpq_clear (two_k);
-  mpq_clear (a);
-  mpq_clear (b);
-  mpq_clear (tmp);
-  /* free coef_p,v,q */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_clear (*cur);
-	      cur = coef_v + i;
-	      mpq_clear (*cur);
-	      cur = coef_q + i;
-	      mpq_clear (*cur);
-	    }
-	}
-    }
-  free (coef_p);
-  free (coef_v);
-  free (coef_q);
-}
-
-/* calc coef f_m for XM and XQ
- * INPUT
- *   nmax
- * OUTPUT
- *   fxm [(nmax + 1) * (nmax + 1)]
- *   fxq [(nmax + 1) * (nmax + 1)]
- */
-void
-XMQ (int nmax, mpq_t *fxm, mpq_t *fxq)
-{
-  int i;
-  int n, p, q;
-  int k;
-
-  mpq_t two;
-  mpq_t two_k;
-  mpq_t *coef_p;
-  mpq_t *coef_v;
-  mpq_t *cur;
-  mpq_t a, b;
-  mpq_t tmp;
-
-
-  mpq_init (two);
-  mpq_init (two_k);
-  mpq_init (a);
-  mpq_init (b);
-  mpq_init (tmp);
-
-  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  if (coef_p == NULL
-      || coef_v == NULL)
-    {
-      fprintf (stderr, "cannot alloacted coef_q [%d]\n",
-	       (nmax + 1) * (nmax + 1) * (nmax + 1));
-      exit (-1);
-    }
-
-  /* zero clear */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_v + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-	    }
-	}
-    }
-  /* initial condition */
-  cur = coef_p + pointer_npq (nmax, 2, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  cur = coef_v + pointer_npq (nmax, 2, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  X_problem (nmax, coef_p, coef_v);
-
-
-  mpq_set_ui (two, 2, 1);
-  /* XM */
-  n = 2;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q </*=*/ nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-
-	      if (k % 2 == 0)
-		cur = fxm + pointer_mq (nmax, k, q);
-	      else
-		cur = fxm + pointer_mq (nmax, k, q + 1);
-	      mpq_set ((*cur), a);
-	    }
-	}
-    }
-
-  /* XQ */
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=1; q <= k - 1; q++)
+      mpq_set_ui (f, 0, 1);
+      for (q = 1; q <= k - 1; q ++)
 	{
 	  mpq_set_ui (a, 0, 1);
 	  for (n=1; n <= (q + 1) / 2; n++)
 	    {
-	      if (q - n >= 0
-		  && k - q - 1 >= 0)
+	      X_p (n, q - n, k - q - 1, 2, 2, b);
+
+	      if (mpz_cmp_si (mpq_numref (b), 0))
 		{
-		  cur = coef_p + pointer_npq (nmax, n, q - n, k - q - 1);
-		  mpq_set (b, (*cur));
 		  /* mul (two_k) */
 		  mpq_mul (b, b, two_k);
 		  /* mul 5 */
@@ -1115,462 +731,415 @@ XMQ (int nmax, mpq_t *fxm, mpq_t *fxq)
 		  mpq_add (a, a, b);
 		}
 	    }
-	  if (k % 2 == 0)
-	    cur = fxq + pointer_mq (nmax, k, q);
-	  else
-	    cur = fxq + pointer_mq (nmax, k, q + 1);
-	  mpq_set ((*cur), a);
+	  if (mpz_cmp_si (mpq_numref (a), 0))
+	      mpq_add (f, f, a);
 	}
+
+      fprintf (stdout, "XPf [%d] = ", k);
+      print_mpq (f);
+      fprintf (stdout, "\n");
     }
 
-  mpq_clear (two);
-  mpq_clear (two_k);
+  mpq_clear (f);
   mpq_clear (a);
   mpq_clear (b);
   mpq_clear (tmp);
-  /* free coef_p,v */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_clear (*cur);
-	      cur = coef_v + i;
-	      mpq_clear (*cur);
-	    }
-	}
-    }
-  free (coef_p);
-  free (coef_v);
+  mpq_clear (two);
+  mpq_clear (two_k);
 }
 
-/* calc coef f_m for YM
- * INPUT
- *   nmax
- * OUTPUT
- *   fym [(nmax + 1) * (nmax + 1)]
- */
-void
-YM (int nmax, mpq_t *fym)
-{
-  int i;
-  int n, p, q;
-  int k;
 
+void
+XC (int nmax)
+{
+  int k, q;
   mpq_t two;
   mpq_t two_k;
-  mpq_t *coef_p;
-  mpq_t *coef_v;
-  mpq_t *coef_q;
-  mpq_t *cur;
-  mpq_t a, b;
-  mpq_t tmp;
+  mpq_t coef_q;
 
 
+  mpq_init (coef_q);
   mpq_init (two);
   mpq_init (two_k);
-  mpq_init (a);
-  mpq_init (b);
-  mpq_init (tmp);
-
-  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  if (coef_p == NULL
-      || coef_v == NULL
-      || coef_q == NULL)
-    {
-      fprintf (stderr, "cannot alloacted coef_q [%d]\n",
-	       (nmax + 1) * (nmax + 1) * (nmax + 1));
-      exit (-1);
-    }
-
-  /* zero clear */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_v + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_q + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-	    }
-	}
-    }
-  /* initial condition */
-  cur = coef_p + pointer_npq (nmax, 2, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  cur = coef_v + pointer_npq (nmax, 2, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  YM_problem (nmax, coef_p, coef_v, coef_q);
-
 
   mpq_set_ui (two, 2, 1);
-  /* YM */
-  n = 2;
   for (k=0, mpq_set_ui (two_k, 1, 1);
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      for(q=0; q </*=*/ nmax; q++)
+      fprintf (stdout, "XCf_%d = ", k);
+      for (q = 0; q <= k; q ++)
 	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
+	  X_q (1, k - q, q, coef_q);
 
-	      if (k % 2 == 0)
-		cur = fym + pointer_mq (nmax, k, q);
-	      else
-		cur = fym + pointer_mq (nmax, k, q + 1);
-	      mpq_set ((*cur), a);
+	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_q, coef_q, two_k);
+
+	      print_mpq (coef_q);
+	      fprintf (stdout, " l^%d ", q);
 	    }
 	}
+      fprintf (stdout, "\n");
     }
 
+  mpq_clear (coef_q);
   mpq_clear (two);
   mpq_clear (two_k);
-  mpq_clear (a);
-  mpq_clear (b);
-  mpq_clear (tmp);
-  /* free coef_p,v,q */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_clear (*cur);
-	      cur = coef_v + i;
-	      mpq_clear (*cur);
-	      cur = coef_q + i;
-	      mpq_clear (*cur);
-	    }
-	}
-    }
-  free (coef_p);
-  free (coef_v);
-  free (coef_q);
 }
 
-/* calc coef f_m for ZM
+
+
+/* calc coef Pnpq on X[AGP]
  * INPUT
- *   nmax
+ *   n, p, q : (int)
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
  * OUTPUT
- *   fzm [(nmax + 1) * (nmax + 1)]
+ *   coef_q : (mpq_t)
  */
 void
-ZM (int nmax, mpq_t *fzm)
+X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p)
 {
-  int i;
-  int n, p, q;
-  int k;
+  int s;
 
-  mpq_t two;
-  mpq_t two_k;
-  mpq_t *coef_p;
-  mpq_t *coef_v;
-  mpq_t *coef_q;
-  mpq_t *cur;
   mpq_t a, b;
   mpq_t tmp;
 
+  char filename [40];
 
-  mpq_init (two);
-  mpq_init (two_k);
-  mpq_init (a);
-  mpq_init (b);
-  mpq_init (tmp);
 
-  coef_p = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_v = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  coef_q = (mpq_t *) malloc (sizeof (mpq_t)
-			      * (nmax + 1) * (nmax + 1) * (nmax + 1));
-  if (coef_p == NULL
-      || coef_v == NULL
-      || coef_q == NULL)
+  if (n < 0
+      || p < 0
+      || q < 0)
     {
-      fprintf (stderr, "cannot alloacted coef_q [%d]\n",
-	       (nmax + 1) * (nmax + 1) * (nmax + 1));
-      exit (-1);
+      /* clear Pnpq */
+      mpq_set_ui (coef_p, 0, 1);
+      return;
     }
 
-  /* zero clear */
-  for (n=0; n <= nmax; n++)
+  if (p == 0
+      && q == 0)
     {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
+      /* initial condition */
+      if (inp != 0
+	  && n == inp)
+	mpq_set_ui (coef_p, 1, 1);
+      else
+	mpq_set_ui (coef_p, 0, 1);
 
-	      cur = coef_p + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_v + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-
-	      cur = coef_q + i;
-	      mpq_init (*cur);
-	      mpq_set_ui ((*cur), 0, 1);
-	    }
-	}
-    }
-  /* initial condition */
-  cur = coef_p + pointer_npq (nmax, 2, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  cur = coef_v + pointer_npq (nmax, 2, 0, 0);
-  mpq_set_ui ((*cur), 1, 1);
-
-  Z_problem (nmax, coef_p, coef_v, coef_q);
-
-
-  mpq_set_ui (two, 2, 1);
-  n = 2;
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      for(q=0; q </*=*/ nmax; q++)
-	{
-	  p = k - q;
-	  if (p >= 0)
-	    {
-	      cur = coef_p + pointer_npq (nmax, n, p, q);
-	      mpq_set (a, (*cur));
-	      /* mul (two_k) */
-	      mpq_mul (a, a, two_k);
-
-	      if (k % 2 == 0)
-		cur = fzm + pointer_mq (nmax, k, q);
-	      else
-		cur = fzm + pointer_mq (nmax, k, q + 1);
-	      mpq_set ((*cur), a);
-	    }
-	}
+      return;
     }
 
-  mpq_clear (two);
-  mpq_clear (two_k);
-  mpq_clear (a);
-  mpq_clear (b);
-  mpq_clear (tmp);
-  /* free coef_p,v,q */
-  for (n=0; n <= nmax; n++)
-    {
-      for (p=0; p <= nmax; p++)
-	{
-	  for (q=0; q <= nmax; q++)
-	    {
-	      i = pointer_npq (nmax, n, p, q);
-
-	      cur = coef_p + i;
-	      mpq_clear (*cur);
-	      cur = coef_v + i;
-	      mpq_clear (*cur);
-	      cur = coef_q + i;
-	      mpq_clear (*cur);
-	    }
-	}
-    }
-  free (coef_p);
-  free (coef_v);
-  free (coef_q);
-}
-
-
-
-void
-X_problem (int nmax, mpq_t*coef_p, mpq_t*coef_v)
-{
-  int i;
-  int n, p, q, s;
-
-  mpq_t *cur;
-  mpq_t *cur0;
-  mpq_t a, b;
-  mpq_t tmp;
+  /* search buffer */
+  sprintf (filename, "two-body.X_p.%d.%d.%d", 0, inp, inv);
+  if (search_results (filename, n, p, q, coef_p) == 0)
+    return; /* found */
 
 
   mpq_init (a);
   mpq_init (b);
   mpq_init (tmp);
 
-  for (i=1; i <= nmax; i++)
+  /* clear Pnpq */
+  mpq_set_ui (coef_p, 0, 1);
+  for (s = 1; s <= q; s ++)
     {
-      for(q = 0; q <= nmax; q++)
+      /* Pnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
+      X_p (s, q - s, p - n + 1, inp, inv, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
 	{
-	  p = i - q;
-	  if (p >= 0)
-	    {
-	      for (n=1; n <= nmax; n++)
-		{
-		  /* clear Pnpq and Vnpq */
-		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2n+1) */
+	  mpq_set_si (tmp, 2 * n + 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2ns-n-s+2) */
+	  mpq_set_si (tmp, 2 * n * s - n - s + 2, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2(2s-1) */
+	  mpq_set_si (tmp, 2 * (2 * s - 1), 1);
+	  mpq_div (b, b, tmp);
+	  /* div (n+s) */
+	  mpq_set_si (tmp, n + s, 1);
+	  mpq_div (b, b, tmp);
 
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
+      X_p (s, q - s, p - n - 1, inp, inv, b);
 
-		  for (s=1; s <= q; s++)
-		    {
-		      /* q - s >= 0 */
-		      /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (a, (*cur0));
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -n */
+	  mpq_set_si (tmp, - n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2n-1) */
+	  mpq_set_si (tmp, 2 * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
 
-			  /* mul comb (n+s,n) */
-			  comb (tmp, n + s, n);
-			  mpq_mul (a, a, tmp);
-			  /* mul (-2n) */
-			  mpq_set_si (tmp, - 2 * n, 1);
-			  mpq_mul (a, a, tmp);
-			  /* div (n+1) */
-			  mpq_set_si (tmp, n + 1, 1);
-			  mpq_div (a, a, tmp);
-			  /* div (2n+3) */
-			  mpq_set_si (tmp, 2 * n + 3, 1);
-			  mpq_div (a, a, tmp);
+	  mpq_add (a, a, b);
+	}
 
-			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mpq_add ((*cur), (*cur), a);
-			}
+      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
+      X_v (s, q - s - 2, p - n + 1, inp, inv, b);
 
-		      /* Pnpq */
-		      mpq_set_ui (a, 0, 1);
-		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
-		      if (p - n + 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n + 1);
-			  mpq_set (b, (*cur0));
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -n */
+	  mpq_set_si (tmp, - n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (4n^2-1) */
+	  mpq_set_si (tmp, 4 * n * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2(2s+1) */
+	  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+	  mpq_div (b, b, tmp);
 
-			  /* mul n */
-			  mpq_set_si (tmp, n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (2n+1) */
-			  mpq_set_si (tmp, 2 * n + 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (2ns-n-s+2) */
-			  mpq_set_si (tmp, 2 * n * s - n - s + 2, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2(2s-1) */
-			  mpq_set_si (tmp, 2 * (2 * s - 1), 1);
-			  mpq_div (b, b, tmp);
-			  /* div (n+s) */
-			  mpq_set_si (tmp, n + s, 1);
-			  mpq_div (b, b, tmp);
+	  mpq_add (a, a, b);
+	}
 
-			  mpq_add (a, a, b);
-			}
-		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (b, (*cur0));
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n) */
+	  comb (tmp, n + s, n);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
 
-			  /* mul -n */
-			  mpq_set_si (tmp, - n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (2n-1) */
-			  mpq_set_si (tmp, 2 * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2 */
-			  mpq_set_ui (tmp, 2, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-
-		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
-		      if (q - s - 2 >= 0
-			  && p - n + 1 >= 0)
-			{
-			  cur0 = coef_v
-			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul -n */
-			  mpq_set_si (tmp, - n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (4n^2-1) */
-			  mpq_set_si (tmp, 4 * n * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2(2s+1) */
-			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* mul comb (n+s,n) */
-		      comb (tmp, n + s, n);
-		      mpq_mul (a, a, tmp);
-		      /* div (n+1) */
-		      mpq_set_si (tmp, n + 1, 1);
-		      mpq_div (a, a, tmp);
-
-		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mpq_add ((*cur), (*cur), a);
-		    }
-		  /* Vnpq : 1st term Pnpq */
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
-		  mpq_add ((*cur), (*cur), (*cur0));
-		}
-	    }
+	  mpq_add (coef_p, coef_p, a);
 	}
     }
+
+  append_result (filename, n, p, q, coef_p);
+
   mpq_clear (a);
   mpq_clear (b);
   mpq_clear (tmp);
 }
 
+/* calc coef Vnpq on X[AGP]
+ * INPUT
+ *   n, p, q : (int)
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_v : (mpq_t)
+ */
 void
-Y_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
+X_v (int n, int p, int q, int inp, int inv, mpq_t coef_v)
 {
-  int i;
-  int n, p, q, s;
+  int s;
 
-  mpq_t *cur;
-  mpq_t *cur0;
-  mpq_t a, b;
+  mpq_t a;
   mpq_t tmp;
-  mpq_t tmp0;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Vnpq */
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inv != 0
+	  && n == inv)
+	mpq_set_ui (coef_v, 1, 1);
+      else
+	mpq_set_ui (coef_v, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.X_v.%d.%d.%d", 0, inp, inv);
+  if (search_results (filename, n, p, q, coef_v) == 0)
+    return; /* found */
+
+
+  mpq_init (a);
+  mpq_init (tmp);
+
+  /* Vnpq : 1st term Pnpq */
+  X_p (n, p, q, inp, inv, coef_v);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
+      X_p (s, q - s, p - n - 1, inp, inv, a);
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n) */
+	  comb (tmp, n + s, n);
+	  mpq_mul (a, a, tmp);
+	  /* mul (-2n) */
+	  mpq_set_si (tmp, - 2 * n, 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+	  /* div (2n+3) */
+	  mpq_set_si (tmp, 2 * n + 3, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_v, coef_v, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_v);
+
+  mpq_clear (a);
+  mpq_clear (tmp);
+}
+
+/* calc coef Qnpq on XC
+ * INPUT
+ *   n, p, q : (int)
+ * OUTPUT
+ *   coef_q : (mpq_t)
+ */
+void
+X_q (int n, int p, int q, mpq_t coef_q)
+{
+  int s;
+
+  mpq_t a;
+  mpq_t tmp;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Qnpq */
+      mpq_set_ui (coef_q, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (n == 1)
+	mpq_set_ui (coef_q, 1, 1);
+      else
+	mpq_set_ui (coef_q, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.X_q.%d.%d.%d", 1, 0, 0);
+  if (search_results (filename, n, p, q, coef_q) == 0)
+    return; /* found */
+
+
+  mpq_init (a);
+  mpq_init (tmp);
+
+  /* clear Qnpq */
+  mpq_set_ui (coef_q, 0, 1);
+  for (s = 0; s <= q; s ++)
+    {
+      /* Qnpq : Qs(q-s-1)(p-n) */
+      X_q (s, q - s - 1, p - n, a);
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n) */
+	  comb (tmp, n + s, n);
+	  mpq_mul (a, a, tmp);
+	  /* mul (s) */
+	  mpq_set_si (tmp, s, 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_q, coef_q, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_q);
+
+  mpq_clear (a);
+  mpq_clear (tmp);
+}
+
+
+/* calc coef Pnpq on Y[ABCGH]
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_p : (mpq_t)
+ */
+void
+Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
+{
+  int s;
+
+  mpq_t a, b;
+  mpq_t tmp, tmp0;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Pnpq */
+      mpq_set_ui (coef_p, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inp != 0
+	  && n == inp)
+	mpq_set_ui (coef_p, 1, 1);
+      else
+	mpq_set_ui (coef_p, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.Y_p.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_p) == 0)
+    return; /* found */
 
 
   mpq_init (a);
@@ -1578,296 +1147,356 @@ Y_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
   mpq_init (tmp);
   mpq_init (tmp0);
 
-  for (i=1; i <= nmax; i++)
+  /* clear Pnpq */
+  mpq_set_ui (coef_p, 0, 1);
+  for (s = 1; s <= q; s ++)
     {
-      for(q = 0; q <= nmax; q++)
+      /* Pnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
+      Y_p (s, q - s, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
 	{
-	  p = i - q;
-	  if (p >= 0)
-	    {
-	      for (n=1; n <= nmax; n++)
-		{
-		  /* clear Pnpq, Vnpq and Qnpq */
-		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* mul (2n+1) */
+	  mpq_set_si (tmp, 2 * n + 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
 
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* mul 3(n+s)-(ns+1)(2ns-s-n+2) */
+	  /* calc -(ns+1)(2ns-s-n+2) */
+	  mpq_set_si (tmp0, - (n * s + 1), 1);
+	  mpq_set_si (tmp, 2 * n * s - s - n + 2, 1);
+	  mpq_mul (tmp, tmp, tmp0);
+	  /* add 3(n+s) */
+	  mpq_set_si (tmp0, 3 * (n + s), 1);
+	  mpq_add (tmp, tmp, tmp0);
+	  mpq_mul (b, b, tmp);
 
-		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* div (s) */
+	  mpq_set_si (tmp, s, 1);
+	  mpq_div (b, b, tmp);
+	  /* div (n+s) */
+	  mpq_set_si (tmp, n + s, 1);
+	  mpq_div (b, b, tmp);
+	  /* div (2s-1) */
+	  mpq_set_si (tmp, 2 * s - 1, 1);
+	  mpq_div (b, b, tmp);
 
-		  for (s=1; s <= q; s++)
-		    {
-		      /* q - s >= 0 */
-		      /* Vnpq : 2nd term Ps(q-s)(p-n+1) */
-		      /*if (p - n + 1 >= 0)*/
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    /*+ pointer_npq (nmax, s, q - s, p - n + 1);*/
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (a, (*cur0));
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
+      Y_p (s, q - s, p - n - 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2n-1) */
+	  mpq_set_si (tmp, 2 * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
 
-			  /* mul comb (n+s,n+1) */
-			  comb (tmp, n + s, n + 1);
-			  mpq_mul (a, a, tmp);
-			  /* mul (2n) */
-			  mpq_set_si (tmp, 2 * n, 1);
-			  mpq_mul (a, a, tmp);
-			  /* div (n+1) */
-			  mpq_set_si (tmp, n + 1, 1);
-			  mpq_div (a, a, tmp);
-			  /* div (2n+3) */
-			  mpq_set_si (tmp, 2 * n + 3, 1);
-			  mpq_div (a, a, tmp);
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
+      Y_v (s, q - s - 2, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (4n^2-1) */
+	  mpq_set_si (tmp, 4 * n * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2(2s+1) */
+	  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+	  mpq_div (b, b, tmp);
 
-			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mpq_add ((*cur), (*cur), a);
-			}
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
+      Y_q (s, q - s - 1, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -2 */
+	  mpq_set_si (tmp, - 2, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (4n^2-1) */
+	  mpq_set_si (tmp, 4 * n * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 3 */
+	  mpq_set_si (tmp, 3, 1);
+	  mpq_div (b, b, tmp);
 
-		      /* Pnpq */
-		      mpq_set_ui (a, 0, 1);
-		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
-		      if (p - n + 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n + 1);
-			  mpq_set (b, (*cur0));
+	  mpq_add (a, a, b);
+	}
 
-			  /* mul (2n+1) */
-			  mpq_set_si (tmp, 2 * n + 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2 */
-			  mpq_set_si (tmp, 2, 1);
-			  mpq_div (b, b, tmp);
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+1) */
+	  comb (tmp, n + s, n + 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
 
-			  /* mul 3(n+s)-(ns+1)(2ns-s-n+2) */
-			  /* calc -(ns+1)(2ns-s-n+2) */
-			  mpq_set_si (tmp0, - (n * s + 1), 1);
-			  mpq_set_si (tmp, 2 * n * s - s - n + 2, 1);
-			  mpq_mul (tmp, tmp, tmp0);
-			  /* add 3(n+s) */
-			  mpq_set_si (tmp0, 3 * (n + s), 1);
-			  mpq_add (tmp, tmp, tmp0);
-			  mpq_mul (b, b, tmp);
-
-			  /* div (s) */
-			  mpq_set_si (tmp, s, 1);
-			  mpq_div (b, b, tmp);
-			  /* div (n+s) */
-			  mpq_set_si (tmp, n + s, 1);
-			  mpq_div (b, b, tmp);
-			  /* div (2s-1) */
-			  mpq_set_si (tmp, 2 * s - 1, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul n */
-			  mpq_set_si (tmp, n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (2n-1) */
-			  mpq_set_si (tmp, 2 * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2 */
-			  mpq_set_si (tmp, 2, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-
-		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
-		      if (q - s - 2 >= 0
-			  && p - n + 1 >= 0)
-			{
-			  cur0 = coef_v
-			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul n */
-			  mpq_set_si (tmp, n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (4n^2-1) */
-			  mpq_set_si (tmp, 4 * n * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2(2s+1) */
-			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-
-		      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
-		      if (q - s - 1 >= 0
-			  && p - n + 1 >= 0)
-			{
-			  cur0 = coef_q
-			    + pointer_npq (nmax, s, q - s - 1, p - n + 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul -2 */
-			  mpq_set_si (tmp, - 2, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (4n^2-1) */
-			  mpq_set_si (tmp, 4 * n * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 3 */
-			  mpq_set_si (tmp, 3, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* mul comb (n+s,n+1) */
-		      comb (tmp, n + s, n + 1);
-		      mpq_mul (a, a, tmp);
-		      /* div (n+1) */
-		      mpq_set_si (tmp, n + 1, 1);
-		      mpq_div (a, a, tmp);
-
-		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mpq_add ((*cur), (*cur), a);
-
-		      /* Qnpq */
-		      mpq_set_ui (a, 0, 1);
-		      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
-		      if (p - n>= 0
-			  && q - s - 1 >= 0)
-			{
-			  cur0 = coef_q
-			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mpq_set (b, (*cur0));
-
-			  /* mul s */
-			  mpq_set_si (tmp, s, 1);
-			  mpq_mul (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* Qnpq : 2nd term Ps(q-s)(p-n) */
-		      if (p - n >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n);
-			  mpq_set (b, (*cur0));
-
-			  /* mul -3 */
-			  mpq_set_si (tmp, - 3, 1);
-			  mpq_mul (b, b, tmp);
-
-			  /* div (2ns) */
-			  mpq_set_si (tmp, 2 * n * s, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* mul comb (n+s,n+1) */
-		      comb (tmp, n + s, n + 1);
-		      mpq_mul (a, a, tmp);
-		      /* div (n+1) */
-		      mpq_set_si (tmp, n + 1, 1);
-		      mpq_div (a, a, tmp);
-
-		      cur = coef_q + pointer_npq (nmax, n, p, q);
-		      mpq_add ((*cur), (*cur), a);
-		    }
-		  /* Vnpq : 1st term Pnpq */
-		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mpq_add ((*cur), (*cur), (*cur0));
-		}
-	    }
+	  mpq_add (coef_p, coef_p, a);
 	}
     }
+
+  append_result (filename, n, p, q, coef_p);
+
   mpq_clear (a);
   mpq_clear (b);
   mpq_clear (tmp);
   mpq_clear (tmp0);
 }
 
+/* calc coef Vnpq on Y[ABCGH]
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_v : (mpq_t)
+ */
 void
-XC_problem (int nmax, mpq_t *coef_q)
+Y_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
 {
-  int i;
-  int n, p, q, s;
+  int s;
 
-  mpq_t *cur;
-  mpq_t *cur0;
+  mpq_t a;
+  mpq_t tmp;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Vnpq */
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inv != 0
+	  && n == inv)
+	mpq_set_ui (coef_v, 1, 1);
+      else
+	mpq_set_ui (coef_v, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.Y_v.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_v) == 0)
+    return; /* found */
+
+
+  mpq_init (a);
+  mpq_init (tmp);
+
+  /* Vnpq : 1st term Pnpq */
+  Y_p (n, p, q, inq, inp, inv, coef_v);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Vnpq : 2nd term Ps(q-s)(p-n+1) */
+      Y_p (s, q - s, p - n - 1, inq, inp, inv, a);
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+1) */
+	  comb (tmp, n + s, n + 1);
+	  mpq_mul (a, a, tmp);
+	  /* mul (2n) */
+	  mpq_set_si (tmp, 2 * n, 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+	  /* div (2n+3) */
+	  mpq_set_si (tmp, 2 * n + 3, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_v, coef_v, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_v);
+
+  mpq_clear (a);
+  mpq_clear (tmp);
+}
+
+/* calc coef Qnpq on Y[ABCGH]
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_q : (mpq_t)
+ */
+void
+Y_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
+{
+  int s;
+
   mpq_t a, b;
   mpq_t tmp;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Vnpq */
+      mpq_set_ui (coef_q, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inq != 0
+	  && n == inq)
+	mpq_set_ui (coef_q, 1, 1);
+      else
+	mpq_set_ui (coef_q, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.Y_q.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_q) == 0)
+    return; /* found */
 
 
   mpq_init (a);
   mpq_init (b);
   mpq_init (tmp);
 
-  for (i=1; i <= nmax; i++)
+  /* clear Qnpq */
+  mpq_set_ui (coef_q, 0, 1);
+  for (s = 1; s <= q; s ++)
     {
-      for(q = 0; q <= nmax; q++)
+      /* Qnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
+      Y_q (s, q - s - 1, p - n, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
 	{
-	  p = i - q;
-	  if (p >= 0)
-	    {
-	      for (n=1; n <= nmax; n++)
-		{
-		  /* clear Qnpq */
-		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* mul s */
+	  mpq_set_si (tmp, s, 1);
+	  mpq_mul (b, b, tmp);
 
-		  for (s=0; s <= q; s++)
-		    {
-		      /* q - s >= 0 */
-		      /* Qnpq : Qs(q-s-1)(p-n) */
-		      if (p - n >= 0
-			  && q - s - 1 >= 0)
-			{
-			  cur0 = coef_q
-			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mpq_set (a, (*cur0));
+	  mpq_add (a, a, b);
+	}
+      /* Qnpq : 2nd term Ps(q-s)(p-n) */
+      Y_p (s, q - s, p - n, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -3 */
+	  mpq_set_si (tmp, - 3, 1);
+	  mpq_mul (b, b, tmp);
 
-			  /* mul comb (n+s,n) */
-			  comb (tmp, n + s, n);
-			  mpq_mul (a, a, tmp);
-			  /* mul (s) */
-			  mpq_set_si (tmp, s, 1);
-			  mpq_mul (a, a, tmp);
-			  /* div (n+1) */
-			  mpq_set_si (tmp, n + 1, 1);
-			  mpq_div (a, a, tmp);
+	  /* div (2ns) */
+	  mpq_set_si (tmp, 2 * n * s, 1);
+	  mpq_div (b, b, tmp);
 
-			  cur = coef_q + pointer_npq (nmax, n, p, q);
-			  mpq_add ((*cur), (*cur), a);
-			}
-		    }
-		}
-	    }
+	  mpq_add (a, a, b);
+	}
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+1) */
+	  comb (tmp, n + s, n + 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_q, coef_q, a);
 	}
     }
+
+  append_result (filename, n, p, q, coef_q);
 
   mpq_clear (a);
   mpq_clear (b);
   mpq_clear (tmp);
 }
 
+/* calc coef Pnpq on YM
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_p : (mpq_t)
+ */
 void
-YM_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
+YM_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
 {
-  int i;
-  int n, p, q, s;
+  int s;
 
-  mpq_t *cur;
-  mpq_t *cur0;
   mpq_t a, b;
-  mpq_t tmp;
-  mpq_t tmp0;
-  mpq_t tmp1;
+  mpq_t tmp, tmp0, tmp1;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Pnpq */
+      mpq_set_ui (coef_p, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inp != 0
+	  && n == inp)
+	mpq_set_ui (coef_p, 1, 1);
+      else
+	mpq_set_ui (coef_p, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.YM_p.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_p) == 0)
+    return; /* found */
 
 
   mpq_init (a);
@@ -1876,207 +1505,108 @@ YM_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
   mpq_init (tmp0);
   mpq_init (tmp1);
 
-  for (i=1; i <= nmax; i++)
+  /* clear Pnpq */
+  mpq_set_ui (coef_p, 0, 1);
+  for (s = 1; s <= q; s ++)
     {
-      for(q = 0; q <= nmax; q++)
+      /* Pnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
+      YM_p (s, q - s, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
 	{
-	  p = i - q;
-	  if (p >= 0)
-	    {
-	      for (n=1; n <= nmax; n++)
-		{
-		  /* clear Pnpq, Vnpq and Qnpq */
-		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* mul (2n+1) */
+	  mpq_set_si (tmp, 2 * n + 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
 
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* mul (ns+4)(n+s)-2(ns+1)^2 */
+	  /* calc -2(ns+1)^2 */
+	  mpq_set_si (tmp, (n * s + 1), 1);
+	  mpq_set_si (tmp0, (n * s + 1), 1);
+	  mpq_mul (tmp, tmp, tmp0);
+	  mpq_set_si (tmp0, - 2, 1);
+	  mpq_mul (tmp, tmp, tmp0);
+	  /* add (ns+4)(n+s) */
+	  mpq_set_si (tmp0, n + s, 1);
+	  mpq_set_si (tmp1, n * s + 4, 1);
+	  mpq_mul (tmp0, tmp0, tmp1);
+	  mpq_add (tmp, tmp, tmp0);
+	  /* mul it with b */
+	  mpq_mul (b, b, tmp);
 
-		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* div (s) */
+	  mpq_set_si (tmp, s, 1);
+	  mpq_div (b, b, tmp);
+	  /* div (2s-1) */
+	  mpq_set_si (tmp, 2 * s - 1, 1);
+	  mpq_div (b, b, tmp);
+	  /* div (n+s) */
+	  mpq_set_si (tmp, n + s, 1);
+	  mpq_div (b, b, tmp);
 
-		  for (s=1; s <= q; s++)
-		    {
-		      /* q - s >= 0 */
-		      /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (a, (*cur0));
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
+      YM_p (s, q - s, p - n - 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2n-1) */
+	  mpq_set_si (tmp, 2 * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
 
-			  /* mul comb (n+s,n+1) */
-			  comb (tmp, n + s, n + 1);
-			  mpq_mul (a, a, tmp);
-			  /* mul (2n) */
-			  mpq_set_si (tmp, 2 * n, 1);
-			  mpq_mul (a, a, tmp);
-			  /* div (n+1) */
-			  mpq_set_si (tmp, n + 1, 1);
-			  mpq_div (a, a, tmp);
-			  /* div (2n+3) */
-			  mpq_set_si (tmp, 2 * n + 3, 1);
-			  mpq_div (a, a, tmp);
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
+      YM_v (s, q - s - 2, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (4n^2-1) */
+	  mpq_set_si (tmp, 4 * n * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2(2s+1) */
+	  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+	  mpq_div (b, b, tmp);
 
-			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mpq_add ((*cur), (*cur), a);
-			}
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
+      YM_q (s, q - s - 1, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -(4n^2-1) */
+	  mpq_set_si (tmp, - (4 * n * n - 1), 1);
+	  mpq_mul (b, b, tmp);
 
-		      /* Pnpq */
-		      mpq_set_ui (a, 0, 1);
-		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
-		      if (p - n + 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n + 1);
-			  mpq_set (b, (*cur0));
+	  mpq_add (a, a, b);
+	}
 
-			  /* mul (2n+1) */
-			  mpq_set_si (tmp, 2 * n + 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2 */
-			  mpq_set_si (tmp, 2, 1);
-			  mpq_div (b, b, tmp);
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+1) */
+	  comb (tmp, n + s, n + 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
 
-			  /* mul (ns+4)(n+s)-2(ns+1)^2 */
-			  /* calc -2(ns+1)^2 */
-			  mpq_set_si (tmp, (n * s + 1), 1);
-			  mpq_set_si (tmp0, (n * s + 1), 1);
-			  mpq_mul (tmp, tmp, tmp0);
-			  mpq_set_si (tmp0, - 2, 1);
-			  mpq_mul (tmp, tmp, tmp0);
-			  /* add (ns+4)(n+s) */
-			  mpq_set_si (tmp0, n + s, 1);
-			  mpq_set_si (tmp1, n * s + 4, 1);
-			  mpq_mul (tmp0, tmp0, tmp1);
-			  mpq_add (tmp, tmp, tmp0);
-			  /* mul it with b */
-			  mpq_mul (b, b, tmp);
-
-			  /* div (s) */
-			  mpq_set_si (tmp, s, 1);
-			  mpq_div (b, b, tmp);
-			  /* div (2s-1) */
-			  mpq_set_si (tmp, 2 * s - 1, 1);
-			  mpq_div (b, b, tmp);
-			  /* div (n+s) */
-			  mpq_set_si (tmp, n + s, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul n */
-			  mpq_set_si (tmp, n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (2n-1) */
-			  mpq_set_si (tmp, 2 * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2 */
-			  mpq_set_si (tmp, 2, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-
-		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
-		      if (q - s - 2 >= 0
-			  && p - n + 1 >= 0)
-			{
-			  cur0 = coef_v
-			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul n */
-			  mpq_set_si (tmp, n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (4n^2-1) */
-			  mpq_set_si (tmp, 4 * n * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2(2s+1) */
-			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-
-		      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
-		      if (q - s - 1 >= 0
-			  && p - n + 1 >= 0)
-			{
-			  cur0 = coef_q
-			    + pointer_npq (nmax, s, q - s - 1, p - n + 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul -(4n^2-1) */
-			  mpq_set_si (tmp, - (4 * n * n - 1), 1);
-			  mpq_mul (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* mul comb (n+s,n+1) */
-		      comb (tmp, n + s, n + 1);
-		      mpq_mul (a, a, tmp);
-		      /* div (n+1) */
-		      mpq_set_si (tmp, n + 1, 1);
-		      mpq_div (a, a, tmp);
-
-		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mpq_add ((*cur), (*cur), a);
-
-		      /* Qnpq */
-		      mpq_set_ui (a, 0, 1);
-		      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
-		      if (p - n>= 0
-			  && q - s - 1 >= 0)
-			{
-			  cur0 = coef_q
-			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mpq_set (b, (*cur0));
-
-			  /* mul s */
-			  mpq_set_si (tmp, s, 1);
-			  mpq_mul (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* Qnpq : 2nd term Ps(q-s)(p-n) */
-		      if (p - n >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n);
-			  mpq_set (b, (*cur0));
-
-			  /* div -(ns) */
-			  mpq_set_si (tmp, - n * s, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* mul comb (n+s,n+1) */
-		      comb (tmp, n + s, n + 1);
-		      mpq_mul (a, a, tmp);
-		      /* div (n+1) */
-		      mpq_set_si (tmp, n + 1, 1);
-		      mpq_div (a, a, tmp);
-
-		      cur = coef_q + pointer_npq (nmax, n, p, q);
-		      mpq_add ((*cur), (*cur), a);
-		    }
-		  /* Vnpq : 1st term Pnpq */
-		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mpq_add ((*cur), (*cur), (*cur0));
-		}
-	    }
+	  mpq_add (coef_p, coef_p, a);
 	}
     }
+
+  append_result (filename, n, p, q, coef_p);
+
   mpq_clear (a);
   mpq_clear (b);
   mpq_clear (tmp);
@@ -2084,18 +1614,242 @@ YM_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
   mpq_clear (tmp1);
 }
 
+/* calc coef Vnpq on YM
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_v : (mpq_t)
+ */
 void
-Z_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
+YM_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
 {
-  int i;
-  int n, p, q, s;
+  int s;
 
-  mpq_t *cur;
-  mpq_t *cur0;
+  mpq_t a;
+  mpq_t tmp;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Vnpq */
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inv != 0
+	  && n == inv)
+	mpq_set_ui (coef_v, 1, 1);
+      else
+	mpq_set_ui (coef_v, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.YM_v.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_v) == 0)
+    return; /* found */
+
+
+  mpq_init (a);
+  mpq_init (tmp);
+
+  /* Vnpq : 1st term Pnpq */
+  YM_p (n, p, q, inq, inp, inv, coef_v);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
+      YM_p (s, q - s, p - n - 1, inq, inp, inv, a);
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+1) */
+	  comb (tmp, n + s, n + 1);
+	  mpq_mul (a, a, tmp);
+	  /* mul (2n) */
+	  mpq_set_si (tmp, 2 * n, 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+	  /* div (2n+3) */
+	  mpq_set_si (tmp, 2 * n + 3, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_v, coef_v, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_v);
+
+  mpq_clear (a);
+  mpq_clear (tmp);
+}
+
+/* calc coef Qnpq on YM
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_q : (mpq_t)
+ */
+void
+YM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
+{
+  int s;
+
   mpq_t a, b;
   mpq_t tmp;
-  mpq_t tmp0;
-  mpq_t tmp1;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Vnpq */
+      mpq_set_ui (coef_q, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inq != 0
+	  && n == inq)
+	mpq_set_ui (coef_q, 1, 1);
+      else
+	mpq_set_ui (coef_q, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.YM_q.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_q) == 0)
+    return; /* found */
+
+
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+
+  /* clear Qnpq */
+  mpq_set_ui (coef_q, 0, 1);
+  for (s = 1; s <= q; s ++)
+    {
+      /* Qnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
+      YM_q (s, q - s - 1, p - n, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul s */
+	  mpq_set_si (tmp, s, 1);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+      /* Qnpq : 2nd term Ps(q-s)(p-n) */
+      YM_p (s, q - s, p - n, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* div -(ns) */
+	  mpq_set_si (tmp, - n * s, 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+1) */
+	  comb (tmp, n + s, n + 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_q, coef_q, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_q);
+
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+}
+
+/* calc coef Pnpq on ZM
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_p : (mpq_t)
+ */
+void
+ZM_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
+{
+  int s;
+
+  mpq_t a, b;
+  mpq_t tmp, tmp0, tmp1;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Pnpq */
+      mpq_set_ui (coef_p, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inp != 0
+	  && n == inp)
+	mpq_set_ui (coef_p, 1, 1);
+      else
+	mpq_set_ui (coef_p, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.ZM_p.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_p) == 0)
+    return; /* found */
 
 
   mpq_init (a);
@@ -2104,219 +1858,309 @@ Z_problem (int nmax, mpq_t *coef_p, mpq_t *coef_v, mpq_t *coef_q)
   mpq_init (tmp0);
   mpq_init (tmp1);
 
-  for (i=1; i <= nmax; i++)
+  /* clear Pnpq */
+  mpq_set_ui (coef_p, 0, 1);
+  for (s = 1; s <= q; s ++)
     {
-      for(q = 0; q <= nmax; q++)
+      /* Pnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
+      ZM_p (s, q - s, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
 	{
-	  p = i - q;
-	  if (p >= 0)
-	    {
-	      for (n=1; n <= nmax; n++)
-		{
-		  /* clear Pnpq, Vnpq and Qnpq */
-		  cur = coef_p + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  mpq_set_ui (tmp1, 1, 1);
+	  /* calc (ns+16)(n+s) */
+	  mpq_set_si (tmp, n * s + 16, 1);
+	  mpq_mul (tmp1, tmp1, tmp);
+	  mpq_set_si (tmp, n + s, 1);
+	  mpq_mul (tmp1, tmp1, tmp);
 
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  /* calc -2(ns+1)(ns+4) */
+	  mpq_set_si (tmp, -2, 1);
+	  mpq_set_si (tmp0, n * s + 1, 1);
+	  mpq_mul (tmp, tmp, tmp0);
+	  mpq_set_si (tmp0, n * s + 4, 1);
+	  mpq_mul (tmp, tmp, tmp0);
+	  /* calc (ns+16)(n+s)-2(ns+1)(ns+4) */
+	  mpq_add (tmp1, tmp1, tmp);
 
-		  cur = coef_q + pointer_npq (nmax, n, p, q);
-		  mpq_set_ui ((*cur), 0, 1);
+	  mpq_mul (b, b, tmp1);
 
-		  for (s=1; s <= q; s++)
-		    {
-		      /* q - s >= 0 */
-		      /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (a, (*cur0));
+	  /* mul (2n+1) */
+	  mpq_set_si (tmp, 2 * n + 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
 
-			  /* mul comb (n+s,n+2) */
-			  comb (tmp, n + s, n + 2);
-			  mpq_mul (a, a, tmp);
-			  /* mul (2n) */
-			  mpq_set_si (tmp, 2 * n, 1);
-			  mpq_mul (a, a, tmp);
-			  /* div (n+1) */
-			  mpq_set_si (tmp, n + 1, 1);
-			  mpq_div (a, a, tmp);
-			  /* div (2n+3) */
-			  mpq_set_si (tmp, 2 * n + 3, 1);
-			  mpq_div (a, a, tmp);
+	  /* div (s) */
+	  mpq_set_si (tmp, s, 1);
+	  mpq_div (b, b, tmp);
+	  /* div (2s-1) */
+	  mpq_set_si (tmp, 2 * s - 1, 1);
+	  mpq_div (b, b, tmp);
+	  /* div (n+s) */
+	  mpq_set_si (tmp, n + s, 1);
+	  mpq_div (b, b, tmp);
 
-			  cur = coef_v + pointer_npq (nmax, n, p, q);
-			  mpq_add ((*cur), (*cur), a);
-			}
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
+      ZM_p (s, q - s, p - n - 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2n-1) */
+	  mpq_set_si (tmp, 2 * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
 
-		      /* Pnpq */
-		      mpq_set_ui (a, 0, 1);
-		      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
-		      if (p - n + 1 >= 0)
-			{
-			  mpq_set_ui (b, 1, 1);
-			  /* calc (ns+16)(n+s) */
-			  mpq_set_si (tmp, n * s + 16, 1);
-			  mpq_mul (b, b, tmp);
-			  mpq_set_si (tmp, n + s, 1);
-			  mpq_mul (b, b, tmp);
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
+      ZM_v (s, q - s - 2, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (4n^2-1) */
+	  mpq_set_si (tmp, 4 * n * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2(2s+1) */
+	  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+	  mpq_div (b, b, tmp);
 
-			  /* calc -2(ns+1)(ns+4) */
-			  mpq_set_si (tmp, -2, 1);
-			  mpq_set_si (tmp0, n * s + 1, 1);
-			  mpq_mul (tmp, tmp, tmp0);
-			  mpq_set_si (tmp0, n * s + 4, 1);
-			  mpq_mul (tmp, tmp, tmp0);
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
+      ZM_q (s, q - s - 1, p - n + 1, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -2(4n^2-1) */
+	  mpq_set_si (tmp, - 2 * (4 * n * n - 1), 1);
+	  mpq_mul (b, b, tmp);
 
-			  /* calc (ns+16)(n+s)-2(ns+1)(ns+4) */
-			  mpq_add (b, b, tmp);
+	  mpq_add (a, a, b);
+	}
 
-			  /* mul (2n+1) */
-			  mpq_set_si (tmp, 2 * n + 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2 */
-			  mpq_set_ui (tmp, 2, 1);
-			  mpq_div (b, b, tmp);
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+2) */
+	  comb (tmp, n + s, n + 2);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
 
-			  /* div (s) */
-			  mpq_set_si (tmp, s, 1);
-			  mpq_div (b, b, tmp);
-			  /* div (2s-1) */
-			  mpq_set_si (tmp, 2 * s - 1, 1);
-			  mpq_div (b, b, tmp);
-			  /* div (n+s) */
-			  mpq_set_si (tmp, n + s, 1);
-			  mpq_div (b, b, tmp);
-
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n + 1);
-
-			  mpq_mul (b, b, (*cur0));
-
-			  mpq_add (a, a, b);
-			}
-		      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
-		      if (p - n - 1 >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n - 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul n */
-			  mpq_set_si (tmp, n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (2n-1) */
-			  mpq_set_si (tmp, 2 * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2 */
-			  mpq_set_si (tmp, 2, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-
-		      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
-		      if (q - s - 2 >= 0
-			  && p - n + 1 >= 0)
-			{
-			  cur0 = coef_v
-			    + pointer_npq (nmax, s, q - s - 2, p - n + 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul n */
-			  mpq_set_si (tmp, n, 1);
-			  mpq_mul (b, b, tmp);
-			  /* mul (4n^2-1) */
-			  mpq_set_si (tmp, 4 * n * n - 1, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div 2(2s+1) */
-			  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-
-		      /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
-		      if (q - s - 1 >= 0
-			  && p - n + 1 >= 0)
-			{
-			  cur0 = coef_q
-			    + pointer_npq (nmax, s, q - s - 1, p - n + 1);
-			  mpq_set (b, (*cur0));
-
-			  /* mul -2(4n^2-1) */
-			  mpq_set_si (tmp, - 2 * (4 * n * n - 1), 1);
-			  mpq_mul (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* mul comb (n+s,n+2) */
-		      comb (tmp, n + s, n + 2);
-		      mpq_mul (a, a, tmp);
-		      /* div (n+1) */
-		      mpq_set_si (tmp, n + 1, 1);
-		      mpq_div (a, a, tmp);
-
-		      cur = coef_p + pointer_npq (nmax, n, p, q);
-		      mpq_add ((*cur), (*cur), a);
-
-		      /* Qnpq */
-		      mpq_set_ui (a, 0, 1);
-		      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
-		      if (p - n>= 0
-			  && q - s - 1 >= 0)
-			{
-			  cur0 = coef_q
-			    + pointer_npq (nmax, s, q - s - 1, p - n);
-			  mpq_set (b, (*cur0));
-
-			  /* mul s */
-			  mpq_set_si (tmp, s, 1);
-			  mpq_mul (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* Qnpq : 2nd term Ps(q-s)(p-n) */
-		      if (p - n >= 0)
-			{
-			  cur0 = coef_p
-			    + pointer_npq (nmax, s, q - s, p - n);
-			  mpq_set (b, (*cur0));
-
-			  /* div -2 */
-			  mpq_set_si (tmp, - 2, 1);
-			  mpq_mul (b, b, tmp);
-			  /* div (ns) */
-			  mpq_set_si (tmp, n * s, 1);
-			  mpq_div (b, b, tmp);
-
-			  mpq_add (a, a, b);
-			}
-		      /* mul comb (n+s,n+2) */
-		      comb (tmp, n + s, n + 2);
-		      mpq_mul (a, a, tmp);
-		      /* div (n+1) */
-		      mpq_set_si (tmp, n + 1, 1);
-		      mpq_div (a, a, tmp);
-
-		      cur = coef_q + pointer_npq (nmax, n, p, q);
-		      mpq_add ((*cur), (*cur), a);
-		    }
-		  /* Vnpq : 1st term Pnpq */
-		  cur0 = coef_p + pointer_npq (nmax, n, p, q);
-		  cur = coef_v + pointer_npq (nmax, n, p, q);
-		  mpq_add ((*cur), (*cur), (*cur0));
-		}
-	    }
+	  mpq_add (coef_p, coef_p, a);
 	}
     }
+
+  append_result (filename, n, p, q, coef_p);
+
   mpq_clear (a);
   mpq_clear (b);
   mpq_clear (tmp);
   mpq_clear (tmp0);
   mpq_clear (tmp1);
 }
+
+/* calc coef Vnpq on ZM
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_v : (mpq_t)
+ */
+void
+ZM_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
+{
+  int s;
+
+  mpq_t a;
+  mpq_t tmp;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Vnpq */
+      mpq_set_ui (coef_v, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inv != 0
+	  && n == inv)
+	mpq_set_ui (coef_v, 1, 1);
+      else
+	mpq_set_ui (coef_v, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.ZM_v.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_v) == 0)
+    return; /* found */
+
+
+  mpq_init (a);
+  mpq_init (tmp);
+
+  /* Vnpq : 1st term Pnpq */
+  ZM_p (n, p, q, inq, inp, inv, coef_v);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
+      ZM_p (s, q - s, p - n - 1, inq, inp, inv, a);
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+2) */
+	  comb (tmp, n + s, n + 2);
+	  mpq_mul (a, a, tmp);
+	  /* mul (2n) */
+	  mpq_set_si (tmp, 2 * n, 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+	  /* div (2n+3) */
+	  mpq_set_si (tmp, 2 * n + 3, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_v, coef_v, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_v);
+
+  mpq_clear (a);
+  mpq_clear (tmp);
+}
+
+/* calc coef Qnpq on ZM
+ * INPUT
+ *   n, p, q : (int)
+ *   inq : index of initial condition where Q(inp)00 = 1
+ *         in=0 means that all Qn00 = 0
+ *   inp : index of initial condition where P(inp)00 = 1
+ *         in=0 means that all Pn00 = 0
+ *   inv : index of initial condition where V(inv)00 = 1
+ *         in=0 means that all Vn00 = 0
+ * OUTPUT
+ *   coef_q : (mpq_t)
+ */
+void
+ZM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
+{
+  int s;
+
+  mpq_t a, b;
+  mpq_t tmp;
+
+  char filename [40];
+
+
+  if (n < 0
+      || p < 0
+      || q < 0)
+    {
+      /* clear Vnpq */
+      mpq_set_ui (coef_q, 0, 1);
+      return;
+    }
+
+  if (p == 0
+      && q == 0)
+    {
+      /* initial condition */
+      if (inq != 0
+	  && n == inq)
+	mpq_set_ui (coef_q, 1, 1);
+      else
+	mpq_set_ui (coef_q, 0, 1);
+
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.ZM_q.%d.%d.%d", inq, inp, inv);
+  if (search_results (filename, n, p, q, coef_q) == 0)
+    return; /* found */
+
+
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+
+  /* clear Qnpq */
+  mpq_set_ui (coef_q, 0, 1);
+  for (s = 1; s <= q; s ++)
+    {
+      /* Qnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Qnpq : 1st term Qs(q-s-1)(p-n) */
+      ZM_q (s, q - s - 1, p - n, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul s */
+	  mpq_set_si (tmp, s, 1);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+      /* Qnpq : 2nd term Ps(q-s)(p-n) */
+      ZM_p (s, q - s, p - n, inq, inp, inv, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* div -2 */
+	  mpq_set_si (tmp, - 2, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div (ns) */
+	  mpq_set_si (tmp, n * s, 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n+2) */
+	  comb (tmp, n + s, n + 2);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_q, coef_q, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_q);
+
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+}
+
 
 
 
@@ -2334,9 +2178,11 @@ comb (mpq_t comb, int n, int m)
   int i;
   mpq_t n1;
 
-  if(n < 0 || m < 0 || n < m)
+  if(n < 0
+     || m < 0
+     || n < m)
     {
-      mpq_set_ui (comb, 0, 1);
+      mpq_set_ui (comb, 0, 1);      
       return (-1);
     }
 
@@ -2363,31 +2209,6 @@ comb (mpq_t comb, int n, int m)
   return (0);
 }
 
-/* return pointer of [nmax][nmax][nmax]
- * INPUT
- *   nmax :
- *   n, p, q :
- * OUTPUT (return value)
- */
-int
-pointer_npq (int nmax, int n, int p, int q)
-{
-  return ((n * (nmax + 1) + p) * (nmax + 1) + q);
-}
-
-/* return pointer of [nmax][nmax]
- * INPUT
- *   nmax :
- *   m, q :
- * OUTPUT (return value)
- */
-int
-pointer_mq (int nmax, int m, int q)
-{
-  return (m * (nmax + 1) + q);
-}
-
-
 /* output rational number on stdout
  */
 void
@@ -2400,4 +2221,111 @@ print_mpq (mpq_t x)
       printf ("/");
       mpz_out_str (stdout, 10, mpq_denref (x));
     }
+}
+
+/* output rational number on stdout
+ */
+void
+fprint_mpq (FILE *out, mpq_t x)
+{
+  mpz_out_str (out, 10, mpq_numref (x));
+
+  if (mpz_cmp_ui (mpq_denref (x), 1))
+    {
+      fprintf (out, "/");
+      mpz_out_str (out, 10, mpq_denref (x));
+    }
+}
+
+
+/* search coef in result file
+ * INTPUT
+ *   char *file : file name
+ *   n, p, q :
+ * OUTPUT
+ *   mpq_t coef :
+ *   (RETURN VALUE) : -1 no entry
+ */
+int
+search_results (char *file, int n, int p, int q, mpq_t coef)
+{
+  FILE *res;
+  mpz_t num, den;
+  int nn, pp, qq;
+  char string [80];
+  int i;
+
+  /* search buffer */
+  res = fopen (file, "r");
+  if (res != NULL)
+    {
+      for (;;)
+	{
+	  i = fscanf (res, "%d %d %d %s\n", &nn, &pp, &qq, string);
+	  if (i == EOF)
+	    break;
+
+	  if (n == nn
+	      && p == pp
+	      && q == qq)
+	    {
+	      mpz_init (num);
+	      mpz_init (den);
+
+	      for (i=0;
+		   string [i] != '/'
+		     && string [i] != '\0';
+		   i ++);
+
+	      if (string [i] == '/')
+		{
+		  string [i] = '\0';
+		  mpz_set_str (num, &string [0], 10);
+		  mpz_set_str (den, &string [i + 1], 10);
+		}
+	      else
+		{
+		  mpz_set_str (num, &string [0], 10);
+		  mpz_set_ui (den, 1);
+		}
+
+	      mpq_set_num (coef, num);
+	      mpq_set_den (coef, den);
+
+	      mpz_clear (num);
+	      mpz_clear (den);
+
+	      fclose (res);
+	      return (0);
+	    }
+	}
+      fclose (res);
+    }
+  /* no entry */
+  return (-1);
+}
+
+/* append result (n, p, q, coef) in result file
+ * INTPUT
+ *   char *file : file name
+ *   n, p, q :
+ *   mpq_t coef :
+ * OUTPUT
+ */
+void
+append_result (char *file, int n, int p, int q, mpq_t coef)
+{
+  FILE *res;
+
+  res = fopen (file, "a");
+  if (res != NULL)
+    {
+      fprintf (res, "%d %d %d ", n, p, q);
+      fprint_mpq (res, coef);
+      fprintf (res, "\n");
+
+      fclose (res);
+    }
+  else
+    fprintf (stderr, "cannot open %s\n", file);
 }
