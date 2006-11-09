@@ -1,13 +1,36 @@
-/* coef of 2-body res functions on Jeffrey & Onishi 1984 JFM vol.139 p.261
- * using GMP library
- * Copyright (C) 1999,2005 Kengo Ichiki <kichiki@uwo.ca>
- * $Id: two-body-JO-gmp.c,v 4.1 1999/08/31 00:33:08 ichiki Exp $
+/* exact solution solver for 2 particles in Stokes flows using GMP library
+ * Copyright (C) 1999-2006 Kengo Ichiki <kichiki@users.sourceforge.net>
+ * $Id: two-body-JO-gmp.c,v 4.2 2005/01/22 18:42:56 ichiki Exp $
+ *
+ * References:
+ * [JO-1984] D.J.Jeffrey and Onishi, J. Fluid Mech. 139 (1984) pp.261-290.
+ *   XA, YA, YB, XC, YC, xa, ya, yb, xc, yc are given.
+ * [J-1992] D.J.Jeffrey, Phys. Fluids A 4 (1992) pp.16-29.
+ *   XG, YG, YH, XM, YM, ZM are given.
+ * [JMB-1993] D.J.Jeffrey, J.F.Morris and J.F.Brady,
+ *   Phys. Fluids A 5 (1993) pp.2317-2325.
+ *   XP, XQ are given.
+ * [KSB-2006] A.S.Khair, M.Swaroop and J.F.Brady,
+ *   Phys. Fluids 18, 043102 (2006).
+ *   TQ is given.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 #include <stdio.h>
 #include <stdlib.h> /* malloc() free() */
 #include <gmp.h>
-
-#include "../misc/bench.h" /* ptime_ms_d() */
 
 
 /* function prototypes */
@@ -15,50 +38,64 @@ int
 main (void);
 
 void
-XA_sum_l (int nmax, mpq_t lambda);
+XA (int nmax, int flag);
 void
-YA_sum_l (int nmax, mpq_t lambda);
+YA (int nmax, int flag);
 void
-YB_sum_l (int nmax, mpq_t lambda);
+YB (int nmax, int flag);
 void
-XC_sum_l (int nmax, mpq_t lambda);
+XC (int nmax, int flag);
 void
-YC_sum_l (int nmax, mpq_t lambda);
+YC (int nmax, int flag);
 void
-XG_sum_l (int nmax, mpq_t lambda);
+XG (int nmax, int flag);
 void
-YG_sum_l (int nmax, mpq_t lambda);
+YG (int nmax, int flag);
 void
-YH_sum_l (int nmax, mpq_t lambda);
+YH (int nmax, int flag);
 void
-XM_sum_l (int nmax, mpq_t lambda);
+XM (int nmax, int flag);
 void
-YM_sum_l (int nmax, mpq_t lambda);
+YM (int nmax, int flag);
 void
-ZM_sum_l (int nmax, mpq_t lambda);
+ZM (int nmax, int flag);
 
 void
-XP_sum_l (int nmax, mpq_t lambda);
+XP (int nmax, int flag);
 void
-XQ_sum_l (int nmax, mpq_t lambda);
-
-
-void
-XC (int nmax);
+XQ (int nmax, int flag);
 
 void
-X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p);
+TQ (int nmax, int flag);
+
+
+/** mobility functions **/
 void
-X_v (int n, int p, int q, int inp, int inv, mpq_t coef_v);
+xa (int nmax, int flag);
 void
-X_q (int n, int p, int q, mpq_t coef_q);
+ya (int nmax, int flag);
+void
+yb (int nmax, int flag);
+void
+xc (int nmax, int flag);
+void
+yc (int nmax, int flag);
+
+
+/** recurrence relation solvers **/
+void
+X_p (int n, int p, int q, int mode, mpq_t coef_p);
+void
+X_v (int n, int p, int q, int mode, mpq_t coef_v);
+void
+X_q (int n, int p, int q, int mode, mpq_t coef_q);
 
 void
-Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p);
+Y_p (int n, int p, int q, int mode, mpq_t coef_p);
 void
-Y_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v);
+Y_v (int n, int p, int q, int mode, mpq_t coef_v);
 void
-Y_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
+Y_q (int n, int p, int q, int mode, mpq_t coef_q);
 
 void
 YM_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
@@ -74,6 +111,23 @@ ZM_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
 void
 ZM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q);
 
+void
+TQ_p (int n, int p, int q, mpq_t coef_p);
+void
+TQ_v (int n, int p, int q, mpq_t coef_v);
+
+/** for mobility functions **/
+void
+x_u (int p, int q, int mode, mpq_t coef_u);
+void
+y_u (int p, int q, int mode, mpq_t coef_u);
+void
+y_q (int p, int q, int mode, mpq_t coef_q);
+void
+x_q (int p, int q, mpq_t coef_q);
+
+
+/** utility functions **/
 int
 comb (mpq_t comb, int n, int m);
 
@@ -92,45 +146,51 @@ int
 main (void)
 {
   int nmax;
-  mpq_t lambda;
-  double time;
-
 
   nmax = 100;
 
-  mpq_init (lambda);
-  mpq_set_ui (lambda, 1, 1);
+  /* mobility functions */
+  //xa (nmax, 0);
+  //ya (nmax, 0);
+  /*
+  yb (nmax, 0);
+  xc (nmax, 0);
+  yc (nmax, 0);
+  exit (0);
+  */
 
-  /*XC (nmax);*/
+  //xa (nmax, 1);
+  //ya (nmax, 1);
+  //yb (nmax, 1);
+  //xc (nmax, 1);
+  //yc (nmax, 1);
 
-  ptime_ms_d();
-
-  /*XA_sum_l (nmax, lambda);*/
-  YA_sum_l (nmax, lambda);
-  YB_sum_l (nmax, lambda);
-  XC_sum_l (nmax, lambda);
-  YC_sum_l (nmax, lambda);
-  XG_sum_l (nmax, lambda);
-  YG_sum_l (nmax, lambda);
-  YH_sum_l (nmax, lambda);
-  XM_sum_l (nmax, lambda);
-  YM_sum_l (nmax, lambda);
-  ZM_sum_l (nmax, lambda);
-  XP_sum_l (nmax, lambda);
-  XQ_sum_l (nmax, lambda);
-
-  time = ptime_ms_d();
-
-  fprintf (stderr, "# ptime = %f\n", time);
-
-  mpq_clear (lambda);
+  //XA (nmax, 1);
+  //YA (nmax, 1);
+  //YB (nmax, 1);
+  //XC (nmax, 1);
+  //YC (nmax, 1);
+  //XG (nmax, 1);
+  //YG (nmax, 1);
+  //YH (nmax, 1);
+  //XM (nmax, 1);
+  //YM (nmax, 1);
+  //ZM (nmax, 1);
+  //XP (nmax, 1);
+  //XQ (nmax, 1);
+  TQ (nmax, 1);
 
   return 0;
 }
 
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-XA_sum_l (int nmax, mpq_t lambda)
+XA (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -148,21 +208,43 @@ XA_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "XAf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
       for (q = 0; q <= k; q ++)
 	{
-	  X_p (1, k - q, q, 1, 1, coef_p);
+	  X_p (1, k - q, q, 10/* for XA */, coef_p);
 
 	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  fprintf (stdout, " l^%d ", q);
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
 	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	/* mul 2^k */
-	mpq_mul (f, f, two_k);
-
-      fprintf (stdout, "XAf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "XAf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -171,8 +253,13 @@ XA_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-YA_sum_l (int nmax, mpq_t lambda)
+YA (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -190,21 +277,43 @@ YA_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "YAf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
       for (q = 0; q <= k; q ++)
 	{
-	  Y_p (1, k - q, q, 0, 1, 1, coef_p);
+	  Y_p (1, k - q, q, 10/* for YA (0, 1, 1) */, coef_p);
 
 	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  fprintf (stdout, " l^%d ", q);
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
 	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	/* mul 2^k */
-	mpq_mul (f, f, two_k);
-
-      fprintf (stdout, "YAf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "YAf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -213,8 +322,13 @@ YA_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-YB_sum_l (int nmax, mpq_t lambda)
+YB (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -228,30 +342,48 @@ YB_sum_l (int nmax, mpq_t lambda)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k=0, mpq_set_ui (two_k, 1, 1);
+  // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
+  for (k=0, mpq_set_ui (two_k, 2, 1);
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "YBf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
       for (q = 0; q <= k; q ++)
 	{
-	  Y_q (1, k - q, q, 0, 1, 1, coef_q);
+	  Y_q (1, k - q, q, 10/* for YB (0, 1, 1) */, coef_q);
 
 	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
-	      mpq_add (f, f, coef_q);
+	    {
+	      /* mul 2^k and another 2 */
+	      mpq_mul (coef_q, coef_q, two_k);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_q);
+		  fprintf (stdout, " l^%d ", q);
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_q);
+		}
+	    }
 	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
+      if (flag != 0)
 	{
-	  /* mul 2^k */
-	  mpq_mul (f, f, two_k);
-	  /* mul 2 */
-	  mpq_set_ui (coef_q, 2, 1);
-	  mpq_mul (f, f, coef_q);
+	  fprintf (stdout, "\n");
 	}
-
-      fprintf (stdout, "YBf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      else
+	{
+	  fprintf (stdout, "YBf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -260,8 +392,13 @@ YB_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-XC_sum_l (int nmax, mpq_t lambda)
+XC (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -279,21 +416,51 @@ XC_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "XCf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
       for (q = 0; q <= k; q ++)
 	{
-	  X_q (1, k - q, q, coef_q);
+	  X_q (1, k - q, q, 1/* resistance */, coef_q);
 
 	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_q, coef_q, two_k);
-	      mpq_add (f, f, coef_q);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_q);
+		  if (k%2 == 1)
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		  else
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_q);
+		}
 	    }
 	}
-      fprintf (stdout, "XCf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "XCf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -302,8 +469,13 @@ XC_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-YC_sum_l (int nmax, mpq_t lambda)
+YC (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -321,21 +493,51 @@ YC_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "YCf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
       for (q = 0; q <= k; q ++)
 	{
-	  Y_q (1, k - q, q, 1, 0, 0, coef_q);
+	  Y_q (1, k - q, q, 11/* for YC (1, 0, 0) */, coef_q);
 
 	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
-	      mpq_add (f, f, coef_q);
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_q, coef_q, two_k);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_q);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_q);
+		}
+	    }
 	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	/* mul 2^k */
-	mpq_mul (f, f, two_k);
-
-      fprintf (stdout, "YCf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "YCf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -344,8 +546,261 @@ YC_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-XG_sum_l (int nmax, mpq_t lambda)
+XG (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_t three4;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_init (three4);
+  mpq_set_ui (three4, 3, 4);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "XGf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+      for (q = 0; q <= k; q ++)
+	{
+	  X_p (2, k - q, q, 10/* for X[AGP] */, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+	      /* mul (3/4) */
+	      mpq_mul (coef_p, coef_p, three4);
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  fprintf (stdout, " l^%d ", q);
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
+	}
+
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "XGf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+
+  mpq_clear (three4);
+}
+
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+YG (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_t three4;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_init (three4);
+  mpq_set_ui (three4, 3, 4);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "YGf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+      for (q = 0; q <= k; q ++)
+	{
+	  Y_p (2, k - q, q, 10/* for YG (0, 1, 1) */, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+	      /* mul (3/4) */
+	      mpq_mul (coef_p, coef_p, three4);
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  fprintf (stdout, " l^%d ", q);
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
+	}
+
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "YGf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+
+  mpq_clear (three4);
+}
+
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+YH (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_p;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_t mthree8;
+
+  mpq_init (f);
+  mpq_init (coef_p);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_init (mthree8);
+  mpq_set_si (mthree8, -3, 8);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "YHf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+      for (q = 0; q <= k; q ++)
+	{
+	  Y_p (2, k - q, q, 11/* for YH (1, 0, 0) */, coef_p);
+
+	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+	      /* mul (-3/8) */
+	      mpq_mul (coef_p, coef_p, mthree8);
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
+	}
+
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "YHf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_p);
+  mpq_clear (two);
+  mpq_clear (two_k);
+
+  mpq_clear (mthree8);
+}
+
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+XM (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -363,29 +818,54 @@ XG_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "XMf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+
       for (q = 0; q <= k; q ++)
 	{
-	  X_p (2, k - q, q, 1, 1, coef_p);
+	  X_p (2, k - q, q, 11/* for XM */, coef_p);
 
 	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
-	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	{
-	  /* mul 2^k */
-	  mpq_mul (f, f, two_k);
-	  /* mul 3 */
-	  mpq_set_ui (coef_p, 3, 1);
-	  mpq_mul (f, f, coef_p);
-	  /* mul 4 */
-	  mpq_set_ui (coef_p, 4, 1);
-	  mpq_div (f, f, coef_p);
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
 	}
 
-      fprintf (stdout, "XGf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "XMf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -394,8 +874,13 @@ XG_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-YG_sum_l (int nmax, mpq_t lambda)
+YM (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -413,167 +898,54 @@ YG_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
-      for (q = 0; q <= k; q ++)
+      if (flag != 0)
 	{
-	  Y_p (2, k - q, q, 0, 1, 1, coef_p);
-
-	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
+	  fprintf (stdout, "YMf_%d = ", k);
 	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
+      else
 	{
-	  /* mul 2^k */
-	  mpq_mul (f, f, two_k);
-	  /* mul 3 */
-	  mpq_set_ui (coef_p, 3, 1);
-	  mpq_mul (f, f, coef_p);
-	  /* div 4 */
-	  mpq_set_ui (coef_p, 4, 1);
-	  mpq_div (f, f, coef_p);
+	  mpq_set_ui (f, 0, 1);
 	}
 
-      fprintf (stdout, "YGf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
-    }
-
-  mpq_clear (f);
-  mpq_clear (coef_p);
-  mpq_clear (two);
-  mpq_clear (two_k);
-}
-
-void
-YH_sum_l (int nmax, mpq_t lambda)
-{
-  int k, q;
-  mpq_t f;
-  mpq_t coef_p;
-  mpq_t two;
-  mpq_t two_k;
-
-  mpq_init (f);
-  mpq_init (coef_p);
-  mpq_init (two);
-  mpq_init (two_k);
-
-  mpq_set_ui (two, 2, 1);
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      mpq_set_ui (f, 0, 1);
-      for (q = 0; q <= k; q ++)
-	{
-	  Y_p (2, k - q, q, 1, 0, 0, coef_p);
-
-	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
-	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	{
-	  /* mul 2^k */
-	  mpq_mul (f, f, two_k);
-	  /* mul -3 */
-	  mpq_set_si (coef_p, -3, 1);
-	  mpq_mul (f, f, coef_p);
-	  /* div 8 */
-	  mpq_set_ui (coef_p, 8, 1);
-	  mpq_div (f, f, coef_p);
-	}
-
-      fprintf (stdout, "YHf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
-    }
-
-  mpq_clear (f);
-  mpq_clear (coef_p);
-  mpq_clear (two);
-  mpq_clear (two_k);
-}
-
-void
-XM_sum_l (int nmax, mpq_t lambda)
-{
-  int k, q;
-  mpq_t f;
-  mpq_t coef_p;
-  mpq_t two;
-  mpq_t two_k;
-
-  mpq_init (f);
-  mpq_init (coef_p);
-  mpq_init (two);
-  mpq_init (two_k);
-
-  mpq_set_ui (two, 2, 1);
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      mpq_set_ui (f, 0, 1);
-      for (q = 0; q <= k; q ++)
-	{
-	  X_p (2, k - q, q, 2, 2, coef_p);
-
-	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
-	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	{
-	  /* mul 2^k */
-	  mpq_mul (f, f, two_k);
-	}
-
-      fprintf (stdout, "XMf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
-    }
-
-  mpq_clear (f);
-  mpq_clear (coef_p);
-  mpq_clear (two);
-  mpq_clear (two_k);
-}
-
-void
-YM_sum_l (int nmax, mpq_t lambda)
-{
-  int k, q;
-  mpq_t f;
-  mpq_t coef_p;
-  mpq_t two;
-  mpq_t two_k;
-
-  mpq_init (f);
-  mpq_init (coef_p);
-  mpq_init (two);
-  mpq_init (two_k);
-
-  mpq_set_ui (two, 2, 1);
-  for (k=0, mpq_set_ui (two_k, 1, 1);
-       k <= nmax;
-       k++, mpq_mul (two_k, two_k, two))
-    {
-      mpq_set_ui (f, 0, 1);
       for (q = 0; q <= k; q ++)
 	{
 	  YM_p (2, k - q, q, 0, 2, 2, coef_p);
 
 	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
-	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	{
-	  /* mul 2^k */
-	  mpq_mul (f, f, two_k);
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
 	}
 
-      fprintf (stdout, "YMf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "YMf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -582,8 +954,13 @@ YM_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-ZM_sum_l (int nmax, mpq_t lambda)
+ZM (int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -601,23 +978,54 @@ ZM_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "ZMf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+
       for (q = 0; q <= k; q ++)
 	{
 	  ZM_p (2, k - q, q, 0, 2, 2, coef_p);
 
 	  if (mpz_cmp_si (mpq_numref (coef_p), 0))
-	      mpq_add (f, f, coef_p);
-	}
-      if (mpz_cmp_si (mpq_numref (f), 0))
-	{
-	  /* mul 2^k */
-	  mpq_mul (f, f, two_k);
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_p, coef_p, two_k);
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_p);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_p);
+		}
+	    }
 	}
 
-      fprintf (stdout, "ZMf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "ZMf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -626,8 +1034,13 @@ ZM_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-XP_sum_l (int nmax, mpq_t lambda)
+XP (int nmax, int flag)
 {
   int k, q, n;
   mpq_t f;
@@ -648,13 +1061,21 @@ XP_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "XPf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+
       for (q = 1; q <= k - 1; q ++)
 	{
 	  mpq_set_ui (a, 0, 1);
-	  for (n=1; n <= (q + 1) / 2; n++)
+	  for (n = 1; n <= (q + 1) / 2; n++)
 	    {
-	      X_p (n, q - n, k - q - 1, 1, 1, b);
+	      X_p (n, q - n, k - q - 1, 10/* for X[AGP] (1, 1, 1) */, b);
 
 	      if (mpz_cmp_si (mpq_numref (b), 0))
 		{
@@ -671,12 +1092,29 @@ XP_sum_l (int nmax, mpq_t lambda)
 		}
 	    }
 	  if (mpz_cmp_si (mpq_numref (a), 0))
-	      mpq_add (f, f, a);
+	    {
+	      if (flag != 0)
+		{
+		  print_mpq (a);
+		  fprintf (stdout, " l^%d ", q);
+		}
+	      else
+		{
+		  mpq_add (f, f, a);
+		}
+	    }
 	}
 
-      fprintf (stdout, "XPf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "XPf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -687,8 +1125,14 @@ XP_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
+/* -- still something is wrong on f_8 (only) from JMB 1993
+ * and question about the upper limit of "n"...
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-XQ_sum_l (int nmax, mpq_t lambda)
+XQ (int nmax, int flag)
 {
   int k, q, n;
   mpq_t f;
@@ -709,13 +1153,22 @@ XQ_sum_l (int nmax, mpq_t lambda)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      mpq_set_ui (f, 0, 1);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "XQf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+
       for (q = 1; q <= k - 1; q ++)
 	{
 	  mpq_set_ui (a, 0, 1);
-	  for (n=1; n <= (q + 1) / 2; n++)
+	  //for (n=1; n <= (q + 1) / 2; n++)
+	  for (n = 1; n <= q; n++)
 	    {
-	      X_p (n, q - n, k - q - 1, 2, 2, b);
+	      X_p (n, q - n, k - q - 1, 11/* for X[QM] (2, 2) */, b);
 
 	      if (mpz_cmp_si (mpq_numref (b), 0))
 		{
@@ -732,12 +1185,37 @@ XQ_sum_l (int nmax, mpq_t lambda)
 		}
 	    }
 	  if (mpz_cmp_si (mpq_numref (a), 0))
-	      mpq_add (f, f, a);
+	    {
+	      if (flag != 0)
+		{
+		  print_mpq (a);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, a);
+		}
+	    }
 	}
 
-      fprintf (stdout, "XPf [%d] = ", k);
-      print_mpq (f);
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "XQf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
   mpq_clear (f);
@@ -748,17 +1226,23 @@ XQ_sum_l (int nmax, mpq_t lambda)
   mpq_clear (two_k);
 }
 
-
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
 void
-XC (int nmax)
+TQ (int nmax, int flag)
 {
-  int k, q;
+  int k, q, n;
+  mpq_t f;
+  mpq_t a, b;
   mpq_t two;
   mpq_t two_k;
-  mpq_t coef_q;
 
-
-  mpq_init (coef_q);
+  mpq_init (f);
+  mpq_init (a);
+  mpq_init (b);
   mpq_init (two);
   mpq_init (two_k);
 
@@ -767,23 +1251,503 @@ XC (int nmax)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      fprintf (stdout, "XCf_%d = ", k);
+      if (flag != 0)
+	{
+	  fprintf (stdout, "TQf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+
+      for (q = 1; q <= k - 1; q ++)
+	{
+	  mpq_set_ui (a, 0, 1);
+	  for (n = 1; n <= (q + 1) / 2; n++)
+	    {
+	      TQ_p (n, q - n, k - q - 1, b);
+
+	      if (mpz_cmp_si (mpq_numref (b), 0))
+		{
+		  /* mul (two_k) */
+		  mpq_mul (b, b, two_k);
+
+		  mpq_add (a, a, b);
+		}
+	    }
+	  if (mpz_cmp_si (mpq_numref (a), 0))
+	    {
+	      if (flag != 0)
+		{
+		  print_mpq (a);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q+1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, a);
+		}
+	    }
+	}
+
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "TQf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+
+/** mobility functions **/
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+xa (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_u;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_u);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "xaf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
       for (q = 0; q <= k; q ++)
 	{
-	  X_q (1, k - q, q, coef_q);
+	  x_u (k - q, q, 0/* mob for xa */, coef_u);
+
+	  if (mpz_cmp_si (mpq_numref (coef_u), 0))
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_u, coef_u, two_k);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_u);
+		  if (k%2 == 0) // k == even
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else // k == odd
+		    {
+		      fprintf (stdout, " l^%d ", q-1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_u);
+		}
+	    }
+	}
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "xaf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_u);
+  mpq_clear (two);
+  mpq_clear (two_k);
+}
+
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+ya (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_u;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_t minus1;
+
+  mpq_init (f);
+  mpq_init (coef_u);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_init (minus1);
+
+  mpq_set_ui (two, 2, 1);
+  mpq_set_si (minus1, -1, 1);
+  for (k=0, mpq_set_ui (two_k, 1, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "yaf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+      for (q = 0; q <= k; q ++)
+	{
+	  y_u (k - q, q, 0/* for ya and yb*/, coef_u);
+
+	  if (mpz_cmp_si (mpq_numref (coef_u), 0))
+	    {
+	      /* mul 2^k */
+	      mpq_mul (coef_u, coef_u, two_k);
+	      // another ad-hoc adjustment...
+	      if (k != 0 && k%2 == 0)
+		{
+		  mpq_mul (coef_u, coef_u, minus1);
+		}
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_u);
+		  if (k%2 == 0)
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		  else
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q-1);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_u);
+		}
+	    }
+	}
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "yaf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_u);
+  mpq_clear (two);
+  mpq_clear (two_k);
+
+  mpq_clear (minus1);
+}
+
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+yb (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_q;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_t three;
+  mpq_t minus1;
+
+  mpq_init (f);
+  mpq_init (coef_q);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_init (three);
+  mpq_init (minus1);
+
+  mpq_set_ui (two, 2, 1);
+  mpq_set_ui (three, 3, 1); // for adjusting the result...
+  mpq_set_si (minus1, -1, 1);
+  // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
+  for (k=0, mpq_set_ui (two_k, 2, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "ybf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+      for (q = 0; q <= k; q ++)
+	{
+	  y_q (k - q, q, 0/* for ya and yb*/, coef_q);
 
 	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
 	    {
-	      /* mul 2^k */
+	      /* mul 2^k and another 2 */
 	      mpq_mul (coef_q, coef_q, two_k);
+	      // for adjusting the result by factor '1/3'...
+	      mpq_div (coef_q, coef_q, three);
+	      // another ad-hoc adjustment...
+	      if (k%2 == 0)
+		{
+		  mpq_mul (coef_q, coef_q, minus1);
+		}
 
-	      print_mpq (coef_q);
-	      fprintf (stdout, " l^%d ", q);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_q);
+		  if (k%2 == 0)
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q-1);
+		    }
+		  else
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_q);
+		}
 	    }
 	}
-      fprintf (stdout, "\n");
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "ybf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
     }
 
+  mpq_clear (f);
+  mpq_clear (coef_q);
+  mpq_clear (two);
+  mpq_clear (two_k);
+
+  mpq_clear (three);
+  mpq_clear (minus1);
+}
+
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+xc (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_q;
+  //mpq_t two;
+  //mpq_t two_k;
+
+  mpq_t minus1;
+
+  mpq_init (f);
+  mpq_init (coef_q);
+  //mpq_init (two);
+  //mpq_init (two_k);
+
+  mpq_init (minus1);
+
+  //mpq_set_ui (two, 2, 1);
+  // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
+  mpq_set_si (minus1, -1, 1);
+  for (k=0/*, mpq_set_ui (two_k, 2, 1)*/;
+       k <= nmax;
+       k++/*, mpq_mul (two_k, two_k, two)*/)
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "xcf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+      for (q = 0; q <= k; q ++)
+	{
+	  x_q (k - q, q, coef_q);
+
+	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
+	    {
+	      /* mul 2^k and another 2 */
+	      //mpq_mul (coef_q, coef_q, two_k);
+	      if (k%2 == 1)
+		{
+		  // is this right?
+		  mpq_mul (coef_q, coef_q, minus1);
+		}
+
+	      if (flag != 0)
+		{
+		  print_mpq (coef_q);
+		  if (k%2 == 1)
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q-2);
+		    }
+		  else
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_q);
+		}
+	    }
+	}
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "xcf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
+  mpq_clear (coef_q);
+  //mpq_clear (two);
+  //mpq_clear (two_k);
+
+  mpq_clear (minus1);
+}
+
+/*
+ * INPUT
+ *  flag : 0 -- print only f_k (lambda=1)
+ *         1 -- print each coef of l^q
+ */
+void
+yc (int nmax, int flag)
+{
+  int k, q;
+  mpq_t f;
+  mpq_t coef_q;
+  mpq_t two;
+  mpq_t two_k;
+
+  mpq_init (f);
+  mpq_init (coef_q);
+  mpq_init (two);
+  mpq_init (two_k);
+
+  mpq_set_ui (two, 2, 1);
+  //mpq_set_ui (three, 3, 1); // for adjusting the result...
+  // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
+  for (k=0, mpq_set_ui (two_k, 2, 1);
+       k <= nmax;
+       k++, mpq_mul (two_k, two_k, two))
+    {
+      if (flag != 0)
+	{
+	  fprintf (stdout, "ycf_%d = ", k);
+	}
+      else
+	{
+	  mpq_set_ui (f, 0, 1);
+	}
+      for (q = 0; q <= k; q ++)
+	{
+	  y_q (k - q, q, 1/* for yc */, coef_q);
+
+	  if (mpz_cmp_si (mpq_numref (coef_q), 0))
+	    {
+	      /* mul 2^k and another 2 */
+	      mpq_mul (coef_q, coef_q, two_k);
+	      // for adjusting the result by factor '1/2'...
+	      mpq_div (coef_q, coef_q, two);
+	      if (flag != 0)
+		{
+		  print_mpq (coef_q);
+		  if (k%2 == 1)
+		    {
+		      // is this right?
+		      fprintf (stdout, " l^%d ", q-2);
+		    }
+		  else
+		    {
+		      fprintf (stdout, " l^%d ", q);
+		    }
+		}
+	      else
+		{
+		  mpq_add (f, f, coef_q);
+		}
+	    }
+	}
+      if (flag != 0)
+	{
+	  fprintf (stdout, "\n");
+	}
+      else
+	{
+	  fprintf (stdout, "ycf [%d] = ", k);
+	  print_mpq (f);
+	  fprintf (stdout, "\n");
+	}
+    }
+
+  mpq_clear (f);
   mpq_clear (coef_q);
   mpq_clear (two);
   mpq_clear (two_k);
@@ -791,18 +1755,21 @@ XC (int nmax)
 
 
 
-/* calc coef Pnpq on X[AGP]
+/** recurrence relation solvers **/
+/* calc coef Pnpq for X[AGP,MQ] and xa by Eqs.(JO-3.9) == (JO-8.17)
  * INPUT
  *   n, p, q : (int)
- *   inp : index of initial condition where P(inp)00 = 1
- *         in=0 means that all Pn00 = 0
- *   inv : index of initial condition where V(inv)00 = 1
- *         in=0 means that all Vn00 = 0
+ *   mode == 0 for mobility function xa
+ *             where P1pq = delta_0p delta_0q
+ *   mode == 10 for resistance function X[AGP]
+ *             where Pn00 = Vn00 = delta_1n
+ *   mode == 11 for resistance function X[MQ]
+ *             where Pn00 = Vn00 = delta_2n
  * OUTPUT
  *   coef_q : (mpq_t)
  */
 void
-X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p)
+X_p (int n, int p, int q, int mode, mpq_t coef_p)
 {
   int s;
 
@@ -810,54 +1777,89 @@ X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p)
   mpq_t tmp;
 
   char filename [40];
+  int inp = 0;
+  int inv = 0;
 
 
-  if (n < 0
+  /* clear Pnpq */
+  mpq_set_ui (coef_p, 0, 1);
+
+  if (n < 1 // exclude n == 0, too.
       || p < 0
       || q < 0)
     {
-      /* clear Pnpq */
-      mpq_set_ui (coef_p, 0, 1);
       return;
     }
 
-  if (p == 0
-      && q == 0)
+  switch (mode)
     {
+    case 0: // mobility for xa
+
       /* initial condition */
-      if (inp != 0
-	  && n == inp)
-	mpq_set_ui (coef_p, 1, 1);
-      else
-	mpq_set_ui (coef_p, 0, 1);
+      if (n == 1)
+	{
+	  if (p == 0 && q == 0)
+	    {
+	      mpq_set_ui (coef_p, 1, 1);
+	    }
+	  return;
+	}
 
-      return;
+      /* search buffer */
+      sprintf (filename, "two-body.x_p.%d", mode);
+      if (search_results (filename, n, p, q, coef_p) == 0)
+	return; /* found */
+
+      break;
+
+    case 10: // resistance function X[AGP]
+      inp = 1;
+      inv = 1;
+
+      break;
+
+    case 11: // resistance function X[MQ]
+      inp = 2;
+      inv = 2;
+
+      break;
+
+    default:
+      fprintf (stderr, "invalid mode\n");
+      exit (1);
     }
-  if (n > p + 1
-      || q == 0)
+
+  // for all resistance functions
+  if (mode == 10
+      || mode == 11)
     {
-      mpq_set_ui (coef_p, 0, 1);
-      return;
+      if (p == 0 && q == 0)
+	{
+	  /* initial condition */
+	  if (inp != 0
+	      && n == inp)
+	    {
+	      mpq_set_ui (coef_p, 1, 1);
+	    }
+	  return;
+	}
+
+      /* search buffer */
+      sprintf (filename, "two-body.X_p.%d.%d.%d", 0, inp, inv);
+      if (search_results (filename, n, p, q, coef_p) == 0)
+	return; /* found */
     }
-
-  /* search buffer */
-  sprintf (filename, "two-body.X_p.%d.%d.%d", 0, inp, inv);
-  if (search_results (filename, n, p, q, coef_p) == 0)
-    return; /* found */
-
 
   mpq_init (a);
   mpq_init (b);
   mpq_init (tmp);
 
-  /* clear Pnpq */
-  mpq_set_ui (coef_p, 0, 1);
   for (s = 1; s <= q; s ++)
     {
       /* Pnpq */
       mpq_set_ui (a, 0, 1);
       /* Pnpq : 1st term Ps(q-s)(p-n+1) */
-      X_p (s, q - s, p - n + 1, inp, inv, b);
+      X_p (s, q - s, p - n + 1, mode, b);
 
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
@@ -880,7 +1882,7 @@ X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p)
 	  mpq_add (a, a, b);
 	}
       /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
-      X_p (s, q - s, p - n - 1, inp, inv, b);
+      X_p (s, q - s, p - n - 1, mode, b);
 
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
@@ -898,7 +1900,7 @@ X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p)
 	}
 
       /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
-      X_v (s, q - s - 2, p - n + 1, inp, inv, b);
+      X_v (s, q - s - 2, p - n + 1, mode, b);
 
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
@@ -934,19 +1936,20 @@ X_p (int n, int p, int q, int inp, int inv, mpq_t coef_p)
   mpq_clear (b);
   mpq_clear (tmp);
 }
-
-/* calc coef Vnpq on X[AGP]
+/* calc coef Vnpq for X[AGP,MQ] and xa by Eqs.(JO-3.8) == (JO-8.15)
  * INPUT
  *   n, p, q : (int)
- *   inp : index of initial condition where P(inp)00 = 1
- *         in=0 means that all Pn00 = 0
- *   inv : index of initial condition where V(inv)00 = 1
- *         in=0 means that all Vn00 = 0
+ *   mode == 0 for mobility function xa
+ *             where P1pq = delta_0p delta_0q
+ *   mode == 10 for resistance function X[AGP]
+ *             where Pn00 = Vn00 = delta_1n
+ *   mode == 11 for resistance function X[MQ]
+ *             where Pn00 = Vn00 = delta_2n
  * OUTPUT
  *   coef_v : (mpq_t)
  */
 void
-X_v (int n, int p, int q, int inp, int inv, mpq_t coef_v)
+X_v (int n, int p, int q, int mode, mpq_t coef_v)
 {
   int s;
 
@@ -954,52 +1957,81 @@ X_v (int n, int p, int q, int inp, int inv, mpq_t coef_v)
   mpq_t tmp;
 
   char filename [40];
+  int inp = 0;
+  int inv = 0;
 
 
-  if (n < 0
+  /* clear Vnpq */
+  mpq_set_ui (coef_v, 0, 1);
+
+  if (n < 1 // exclude n == 0, too.
       || p < 0
       || q < 0)
     {
-      /* clear Vnpq */
-      mpq_set_ui (coef_v, 0, 1);
       return;
     }
 
-  if (p == 0
-      && q == 0)
+  switch (mode)
     {
-      /* initial condition */
-      if (inv != 0
-	  && n == inv)
-	mpq_set_ui (coef_v, 1, 1);
-      else
-	mpq_set_ui (coef_v, 0, 1);
+    case 0: // mobility for xa
 
-      return;
+      /* Vnpq for mobility has no initial condition */
+
+      /* search buffer */
+      sprintf (filename, "two-body.x_v.%d", mode);
+      if (search_results (filename, n, p, q, coef_v) == 0)
+	return; /* found */
+
+      break;
+
+    case 10: // resistance function X[AGP]
+      inp = 1;
+      inv = 1;
+
+      break;
+
+    case 11: // resistance function X[MQ]
+      inp = 2;
+      inv = 2;
+
+      break;
+
+    default:
+      fprintf (stderr, "invalid mode\n");
+      exit (1);
     }
-  if (n > p + 1
-      || q == 0)
+
+  // for all resistance functions
+  if (mode == 10
+      || mode == 11)
     {
-      mpq_set_ui (coef_v, 0, 1);
-      return;
+      if (p == 0 && q == 0)
+	{
+	  /* initial condition */
+	  if (inv != 0
+	      && n == inv)
+	    {
+	      mpq_set_ui (coef_v, 1, 1);
+	    }
+	  return;
+	}
+
+      /* search buffer */
+      sprintf (filename, "two-body.X_v.%d.%d.%d", 0, inp, inv);
+      if (search_results (filename, n, p, q, coef_v) == 0)
+	return; /* found */
     }
-
-  /* search buffer */
-  sprintf (filename, "two-body.X_v.%d.%d.%d", 0, inp, inv);
-  if (search_results (filename, n, p, q, coef_v) == 0)
-    return; /* found */
-
 
   mpq_init (a);
   mpq_init (tmp);
 
   /* Vnpq : 1st term Pnpq */
-  X_p (n, p, q, inp, inv, coef_v);
+  X_p (n, p, q, mode, coef_v);
 
   for (s = 1; s <= q; s ++)
     {
       /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
-      X_p (s, q - s, p - n - 1, inp, inv, a);
+      X_p (s, q - s, p - n - 1, mode, a);
 
       if (mpz_cmp_si (mpq_numref (a), 0))
 	{
@@ -1026,14 +2058,18 @@ X_v (int n, int p, int q, int inp, int inv, mpq_t coef_v)
   mpq_clear (tmp);
 }
 
-/* calc coef Qnpq on XC
+/* calc coef Qnpq for XC and xc by Eqs.(JO-6.5b) and (JO-12.2)
  * INPUT
  *   n, p, q : (int)
+ *   mode == 0 for mobility function xc
+ *             where Q1pq = delta_0p delta_0q
+ *   mode == 1 for resistance function XC
+ *             where Qn00 = delta_1n
  * OUTPUT
  *   coef_q : (mpq_t)
  */
 void
-X_q (int n, int p, int q, mpq_t coef_q)
+X_q (int n, int p, int q, int mode, mpq_t coef_q)
 {
   int s;
 
@@ -1043,48 +2079,74 @@ X_q (int n, int p, int q, mpq_t coef_q)
   char filename [40];
 
 
-  if (n < 0
+  /* clear Qnpq */
+  mpq_set_ui (coef_q, 0, 1);
+
+  if (n < 1 // exclude n == 0, too.
       || p < 0
       || q < 0)
     {
-      /* clear Qnpq */
-      mpq_set_ui (coef_q, 0, 1);
       return;
     }
 
-  if (p == 0
-      && q == 0)
+  switch (mode)
     {
-      /* initial condition */
+    case 0: // mobility problem
       if (n == 1)
-	mpq_set_ui (coef_q, 1, 1);
-      else
-	mpq_set_ui (coef_q, 0, 1);
+	{
+	  if (p == 0 && q == 0)
+	    {
+	      mpq_set_ui (coef_q, 1, 1);
+	    }
+	  return;
+	}
 
-      return;
+      /* search buffer */
+      sprintf (filename, "two-body.x_q");
+      if (search_results (filename, n, p, q, coef_q) == 0)
+	return; /* found */
+
+      break;
+
+    case 1: // resistance problem
+      if (p == 0
+	  && q == 0)
+	{
+	  /* initial condition */
+	  if (n == 1)
+	    {
+	      mpq_set_ui (coef_q, 1, 1);
+	    }
+	  return;
+	}
+      /* necessary ?
+      if (n > p + 1
+	  || q == 0)
+	{
+	  mpq_set_ui (coef_q, 0, 1);
+	  return;
+	}
+      */
+
+      /* search buffer */
+      sprintf (filename, "two-body.X_q.%d.%d.%d", 1, 0, 0);
+      if (search_results (filename, n, p, q, coef_q) == 0)
+	return; /* found */
+
+      break;
+
+    default:
+      fprintf (stderr, "invalid mode\n");
+      exit (1);
     }
-  if (n > p + 1
-      || q == 0)
-    {
-      mpq_set_ui (coef_q, 0, 1);
-      return;
-    }
-
-  /* search buffer */
-  sprintf (filename, "two-body.X_q.%d.%d.%d", 1, 0, 0);
-  if (search_results (filename, n, p, q, coef_q) == 0)
-    return; /* found */
-
 
   mpq_init (a);
   mpq_init (tmp);
 
-  /* clear Qnpq */
-  mpq_set_ui (coef_q, 0, 1);
   for (s = 1; s <= q; s ++)
     {
       /* Qnpq : Qs(q-s-1)(p-n) */
-      X_q (s, q - s - 1, p - n, a);
+      X_q (s, q - s - 1, p - n, mode, a);
 
       if (mpz_cmp_si (mpq_numref (a), 0))
 	{
@@ -1109,20 +2171,24 @@ X_q (int n, int p, int q, mpq_t coef_q)
 }
 
 
-/* calc coef Pnpq on Y[ABCGH]
+/* calc coef Pnpq on y[agcgh] by Eq. (JO-9.14) == (JO-4.10)
  * INPUT
  *   n, p, q : (int)
- *   inq : index of initial condition where Q(inp)00 = 1
- *         in=0 means that all Qn00 = 0
- *   inp : index of initial condition where P(inp)00 = 1
- *         in=0 means that all Pn00 = 0
- *   inv : index of initial condition where V(inv)00 = 1
- *         in=0 means that all Vn00 = 0
+ *   mode == 0 for mobility functions ya and yb
+ *             where P1pq = delta_0p delta_0q
+ *             and   Q1pq = 0
+ *        == 1 for mobility functions yc
+ *             where P1pq = 0
+ *             and   Q1pq = delta_0p delta_0q
+ *   mode == 10 for resistance functions Y[ABG]
+ *             where Pn00 = Vn00 = delta_1n, Qn00 = 0
+ *   mode == 11 for resistance functions Y[CH]
+ *             where Pn00 = Vn00 = 0, Qn00 = delta_1n
  * OUTPUT
  *   coef_p : (mpq_t)
  */
 void
-Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
+Y_p (int n, int p, int q, int mode, mpq_t coef_p)
 {
   int s;
 
@@ -1130,55 +2196,118 @@ Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
   mpq_t tmp, tmp0;
 
   char filename [40];
+  int inq = 0;
+  int inp = 0;
+  int inv = 0;
 
 
-  if (n < 0
+  /* clear Pnpq */
+  mpq_set_ui (coef_p, 0, 1);
+
+  if (n < 1 // exclude n == 0, too.
       || p < 0
       || q < 0)
     {
-      /* clear Pnpq */
-      mpq_set_ui (coef_p, 0, 1);
       return;
     }
 
-  if (p == 0
-      && q == 0)
+  switch (mode)
     {
+    case 0: // P1pq = delta_0p delta_0q and Q1pq = 0
+
       /* initial condition */
-      if (inp != 0
-	  && n == inp)
-	mpq_set_ui (coef_p, 1, 1);
-      else
-	mpq_set_ui (coef_p, 0, 1);
+      if (n == 1)
+	{
+	  if (p == 0 && q == 0)
+	    {
+	      mpq_set_ui (coef_p, 1, 1);
+	    }
+	  else
+	    {
+	      mpq_set_ui (coef_p, 0, 1);
+	    }
+	  return;
+	}
 
-      return;
+      /* search buffer */
+      sprintf (filename, "two-body.y_p.%d", mode);
+      if (search_results (filename, n, p, q, coef_p) == 0)
+	return; /* found */
+
+      break;
+
+    case 1: // P1pq = 0 and Q1pq = delta_0p delta_0q
+
+      /* initial condition */
+      if (n == 1)
+	{
+	  return;
+	}
+
+      /* search buffer */
+      sprintf (filename, "two-body.y_p.%d", mode);
+      if (search_results (filename, n, p, q, coef_p) == 0)
+	return; /* found */
+
+      break;
+
+    case 10: // resistance functions Y[ABG]
+      inq = 0;
+      inp = 1;
+      inv = 1;
+
+      break;
+
+    case 11: // resistance functions Y[CH]
+      inq = 1;
+      inp = 0;
+      inv = 0;
+
+      break;
+
+    default:
+      fprintf (stderr, "invalid mode\n");
+      exit (1);
     }
-  if (n > p + 1
-      || q == 0)
+
+
+  // for all resistance functions
+  if (mode == 10
+      || mode == 11)
     {
-      mpq_set_ui (coef_p, 0, 1);
-      return;
+      if (p == 0 && q == 0)
+	{
+	  /* initial condition */
+	  if (inp != 0
+	      && n == inp)
+	    {
+	      mpq_set_ui (coef_p, 1, 1);
+	    }
+	  return;
+	}
+      if (n > p + 1
+	  || q == 0)
+	{
+	  return;
+	}
+
+      /* search buffer */
+      sprintf (filename, "two-body.Y_p.%d.%d.%d", inq, inp, inv);
+      if (search_results (filename, n, p, q, coef_p) == 0)
+	return; /* found */
     }
-
-  /* search buffer */
-  sprintf (filename, "two-body.Y_p.%d.%d.%d", inq, inp, inv);
-  if (search_results (filename, n, p, q, coef_p) == 0)
-    return; /* found */
-
 
   mpq_init (a);
   mpq_init (b);
   mpq_init (tmp);
   mpq_init (tmp0);
 
-  /* clear Pnpq */
-  mpq_set_ui (coef_p, 0, 1);
   for (s = 1; s <= q; s ++)
     {
       /* Pnpq */
       mpq_set_ui (a, 0, 1);
       /* Pnpq : 1st term Ps(q-s)(p-n+1) */
-      Y_p (s, q - s, p - n + 1, inq, inp, inv, b);
+      Y_p (s, q - s, p - n + 1, mode, b);
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
 	  /* mul (2n+1) */
@@ -1211,7 +2340,7 @@ Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
 	  mpq_add (a, a, b);
 	}
       /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
-      Y_p (s, q - s, p - n - 1, inq, inp, inv, b);
+      Y_p (s, q - s, p - n - 1, mode, b);
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
 	  /* mul n */
@@ -1227,7 +2356,7 @@ Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
 	  mpq_add (a, a, b);
 	}
       /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
-      Y_v (s, q - s - 2, p - n + 1, inq, inp, inv, b);
+      Y_v (s, q - s - 2, p - n + 1, mode, b);
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
 	  /* mul n */
@@ -1243,7 +2372,7 @@ Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
 	  mpq_add (a, a, b);
 	}
       /* Pnpq : 4th term Qs(q-s-1)(p-n+1) */
-      Y_q (s, q - s - 1, p - n + 1, inq, inp, inv, b);
+      Y_q (s, q - s - 1, p - n + 1, mode, b);
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
 	  /* mul -2 */
@@ -1280,20 +2409,24 @@ Y_p (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_p)
   mpq_clear (tmp0);
 }
 
-/* calc coef Vnpq on Y[ABCGH]
+/* calc coef Vnpq on y[abcgh] by Eq. (JO-9.13) == (JO-4.9)
  * INPUT
  *   n, p, q : (int)
- *   inq : index of initial condition where Q(inp)00 = 1
- *         in=0 means that all Qn00 = 0
- *   inp : index of initial condition where P(inp)00 = 1
- *         in=0 means that all Pn00 = 0
- *   inv : index of initial condition where V(inv)00 = 1
- *         in=0 means that all Vn00 = 0
+ *   mode == 0 for mobility functions ya and yb
+ *             where P1pq = delta_0p delta_0q
+ *             and   Q1pq = 0
+ *        == 1 for mobility functions yc
+ *             where P1pq = 0
+ *             and   Q1pq = delta_0p delta_0q
+ *   mode == 10 for resistance functions Y[ABG]
+ *             where Pn00 = Vn00 = delta_1n, Qn00 = 0
+ *   mode == 11 for resistance functions Y[CH]
+ *             where Pn00 = Vn00 = 0, Qn00 = delta_1n
  * OUTPUT
  *   coef_v : (mpq_t)
  */
 void
-Y_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
+Y_v (int n, int p, int q, int mode, mpq_t coef_v)
 {
   int s;
 
@@ -1301,52 +2434,91 @@ Y_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
   mpq_t tmp;
 
   char filename [40];
+  int inq = 0;
+  int inp = 0;
+  int inv = 0;
 
 
-  if (n < 0
+  /* clear Vnpq */
+  mpq_set_ui (coef_v, 0, 1);
+
+  if (n < 1 // exclude n == 0, too.
       || p < 0
       || q < 0)
     {
-      /* clear Vnpq */
-      mpq_set_ui (coef_v, 0, 1);
       return;
     }
 
-  if (p == 0
-      && q == 0)
+  switch (mode)
     {
-      /* initial condition */
-      if (inv != 0
-	  && n == inv)
-	mpq_set_ui (coef_v, 1, 1);
-      else
-	mpq_set_ui (coef_v, 0, 1);
+    case 0: // P1pq = delta_0p delta_0q and Q1pq = 0
+    case 1: // P1pq = 0 and Q1pq = delta_0p delta_0q
 
-      return;
+      /* Vnpq for mobility has no initial condition */
+
+      /* search buffer */
+      sprintf (filename, "two-body.y_v.%d", mode);
+      if (search_results (filename, n, p, q, coef_v) == 0)
+	return; /* found */
+
+      break;
+
+    case 10: // resistance functions Y[A]
+      inq = 0;
+      inp = 1;
+      inv = 1;
+
+      break;
+
+    case 11: // resistance functions Y[]
+      inq = 1;
+      inp = 0;
+      inv = 0;
+
+      break;
+
+    default:
+      fprintf (stderr, "invalid mode\n");
+      exit (1);
     }
-  if (n > p + 1
-      || q == 0)
+
+
+  // for all resistance functions
+  if (mode == 10
+      || mode == 11)
     {
-      mpq_set_ui (coef_v, 0, 1);
-      return;
+      if (p == 0 && q == 0)
+	{
+	  /* initial condition */
+	  if (inv != 0
+	      && n == inv)
+	    {
+	      mpq_set_ui (coef_v, 1, 1);
+	    }
+	  return;
+	}
+      if (n > p + 1
+	  || q == 0)
+	{
+	  return;
+	}
+
+      /* search buffer */
+      sprintf (filename, "two-body.Y_v.%d.%d.%d", inq, inp, inv);
+      if (search_results (filename, n, p, q, coef_v) == 0)
+	return; /* found */
     }
-
-  /* search buffer */
-  sprintf (filename, "two-body.Y_v.%d.%d.%d", inq, inp, inv);
-  if (search_results (filename, n, p, q, coef_v) == 0)
-    return; /* found */
-
 
   mpq_init (a);
   mpq_init (tmp);
 
   /* Vnpq : 1st term Pnpq */
-  Y_p (n, p, q, inq, inp, inv, coef_v);
+  Y_p (n, p, q, mode, coef_v);
 
   for (s = 1; s <= q; s ++)
     {
       /* Vnpq : 2nd term Ps(q-s)(p-n+1) */
-      Y_p (s, q - s, p - n - 1, inq, inp, inv, a);
+      Y_p (s, q - s, p - n - 1, mode, a);
       if (mpz_cmp_si (mpq_numref (a), 0))
 	{
 	  /* mul comb (n+s,n+1) */
@@ -1372,20 +2544,24 @@ Y_v (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_v)
   mpq_clear (tmp);
 }
 
-/* calc coef Qnpq on Y[ABCGH]
+/* calc coef Qnpq on y[agcgh] by Eq. (JO-9.15) == (JO-4.11)
  * INPUT
  *   n, p, q : (int)
- *   inq : index of initial condition where Q(inp)00 = 1
- *         in=0 means that all Qn00 = 0
- *   inp : index of initial condition where P(inp)00 = 1
- *         in=0 means that all Pn00 = 0
- *   inv : index of initial condition where V(inv)00 = 1
- *         in=0 means that all Vn00 = 0
+ *   mode == 0 for mobility functions ya and yb
+ *             where P1pq = delta_0p delta_0q
+ *             and   Q1pq = 0
+ *        == 1 for mobility functions yc
+ *             where P1pq = 0
+ *             and   Q1pq = delta_0p delta_0q
+ *   mode == 10 for resistance functions Y[ABG]
+ *             where Pn00 = Vn00 = delta_1n, Qn00 = 0
+ *   mode == 11 for resistance functions Y[CH]
+ *             where Pn00 = Vn00 = 0, Qn00 = delta_1n
  * OUTPUT
  *   coef_q : (mpq_t)
  */
 void
-Y_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
+Y_q (int n, int p, int q, int mode, mpq_t coef_q)
 {
   int s;
 
@@ -1393,54 +2569,113 @@ Y_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
   mpq_t tmp;
 
   char filename [40];
+  int inq = 0;
+  int inp = 0;
+  int inv = 0;
 
 
-  if (n < 0
+  /* clear Qnpq */
+  mpq_set_ui (coef_q, 0, 1);
+
+  if (n < 1 // exclude n == 0, too.
       || p < 0
       || q < 0)
     {
-      /* clear Vnpq */
-      mpq_set_ui (coef_q, 0, 1);
       return;
     }
 
-  if (p == 0
-      && q == 0)
+  switch (mode)
     {
+    case 0: // P1pq = delta_0p delta_0q and Q1pq = 0
+
       /* initial condition */
-      if (inq != 0
-	  && n == inq)
-	mpq_set_ui (coef_q, 1, 1);
-      else
-	mpq_set_ui (coef_q, 0, 1);
+      if (n == 1)
+	{
+	  return;
+	}
 
-      return;
+      /* search buffer */
+      sprintf (filename, "two-body.y_q.%d", mode);
+      if (search_results (filename, n, p, q, coef_q) == 0)
+	return; /* found */
+
+      break;
+
+    case 1: // P1pq = 0 and Q1pq = delta_0p delta_0q
+
+      /* initial condition */
+      if (n == 1)
+	{
+	  if (p == 0 && q == 0)
+	    {
+	      mpq_set_ui (coef_q, 1, 1);
+	    }
+	  return;
+	}
+
+      /* search buffer */
+      sprintf (filename, "two-body.y_q.%d", mode);
+      if (search_results (filename, n, p, q, coef_q) == 0)
+	return; /* found */
+
+      break;
+
+    case 10: // resistance functions Y[ABG]
+      inq = 0;
+      inp = 1;
+      inv = 1;
+
+      break;
+
+    case 11: // resistance functions Y[CH]
+      inq = 1;
+      inp = 0;
+      inv = 0;
+
+      break;
+
+    default:
+      fprintf (stderr, "invalid mode\n");
+      exit (1);
     }
-  if (n > p + 1
-      || q == 0)
+
+
+  // for all resistance functions
+  if (mode == 10
+      || mode == 11)
     {
-      mpq_set_ui (coef_q, 0, 1);
-      return;
+      if (p == 0 && q == 0)
+	{
+	  /* initial condition */
+	  if (inq != 0
+	      && n == inq)
+	    {
+	      mpq_set_ui (coef_q, 1, 1);
+	    }
+	  return;
+	}
+      if (n > p + 1
+	  || q == 0)
+	{
+	  return;
+	}
+
+      /* search buffer */
+      sprintf (filename, "two-body.Y_q.%d.%d.%d", inq, inp, inv);
+      if (search_results (filename, n, p, q, coef_q) == 0)
+	return; /* found */
     }
-
-  /* search buffer */
-  sprintf (filename, "two-body.Y_q.%d.%d.%d", inq, inp, inv);
-  if (search_results (filename, n, p, q, coef_q) == 0)
-    return; /* found */
-
 
   mpq_init (a);
   mpq_init (b);
   mpq_init (tmp);
 
-  /* clear Qnpq */
-  mpq_set_ui (coef_q, 0, 1);
   for (s = 1; s <= q; s ++)
     {
       /* Qnpq */
       mpq_set_ui (a, 0, 1);
       /* Qnpq : 1st term Qs(q-s-1)(p-n) */
-      Y_q (s, q - s - 1, p - n, inq, inp, inv, b);
+      Y_q (s, q - s - 1, p - n, mode, b);
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
 	  /* mul s */
@@ -1450,7 +2685,7 @@ Y_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
 	  mpq_add (a, a, b);
 	}
       /* Qnpq : 2nd term Ps(q-s)(p-n) */
-      Y_p (s, q - s, p - n, inq, inp, inv, b);
+      Y_p (s, q - s, p - n, mode, b);
       if (mpz_cmp_si (mpq_numref (b), 0))
 	{
 	  /* mul -3 */
@@ -2234,8 +3469,602 @@ ZM_q (int n, int p, int q, int inq, int inp, int inv, mpq_t coef_q)
 }
 
 
+/* calc coef Pnpq for TQ
+ * INPUT
+ *   n, p, q : (int)
+ * OUTPUT
+ *   coef_q : (mpq_t)
+ */
+void
+TQ_p (int n, int p, int q, mpq_t coef_p)
+{
+  int s;
+
+  mpq_t a, b;
+  mpq_t tmp;
+
+  char filename [40];
 
 
+  /* clear Pnpq */
+  mpq_set_ui (coef_p, 0, 1);
+
+  if (n < 0 // include n == 0 here...
+      || p < 0
+      || q < 0)
+    {
+      return;
+    }
+
+  /* initial condition */
+  if (n == 0)
+    {
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.TQ_p");
+  if (search_results (filename, n, p, q, coef_p) == 0)
+    return; /* found */
+
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+
+  for (s = 0; s <= q; s ++) // start from 0!!
+    {
+      /* Pnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Pnpq : 1st term Ps(q-s)(p-n+1) */
+      TQ_p (s, q - s, p - n + 1, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul n */
+	  mpq_set_si (tmp, n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2n+1) */
+	  mpq_set_si (tmp, 2 * n + 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2ns-n-s+2) */
+	  mpq_set_si (tmp, 2 * n * s - n - s + 2, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2(2s-1) */
+	  mpq_set_si (tmp, 2 * (2 * s - 1), 1);
+	  mpq_div (b, b, tmp);
+	  /* div (n+s) */
+	  mpq_set_si (tmp, n + s, 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+      /* Pnpq : 2nd term Ps(q-s)(p-n-1) */
+      TQ_p (s, q - s, p - n - 1, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -n */
+	  mpq_set_si (tmp, - n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (2n-1) */
+	  mpq_set_si (tmp, 2 * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2 */
+	  mpq_set_si (tmp, 2, 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      /* Pnpq : 3rd term Vs(q-s-2)(p-n+1) */
+      TQ_v (s, q - s - 2, p - n + 1, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -n */
+	  mpq_set_si (tmp, - n, 1);
+	  mpq_mul (b, b, tmp);
+	  /* mul (4n^2-1) */
+	  mpq_set_si (tmp, 4 * n * n - 1, 1);
+	  mpq_mul (b, b, tmp);
+	  /* div 2(2s+1) */
+	  mpq_set_si (tmp, 2 * (2 * s + 1), 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n) */
+	  comb (tmp, n + s, n);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_p, coef_p, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_p);
+
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+}
+/* calc coef Vnpq for TQ
+ * INPUT
+ *   n, p, q : (int)
+ * OUTPUT
+ *   coef_v : (mpq_t)
+ */
+void
+TQ_v (int n, int p, int q, mpq_t coef_v)
+{
+  int s;
+
+  mpq_t a;
+  mpq_t tmp;
+
+  char filename [40];
+
+
+  /* clear Vnpq */
+  mpq_set_ui (coef_v, 0, 1);
+
+  if (n < 0 // include n == 0 here...
+      || p < 0
+      || q < 0)
+    {
+      return;
+    }
+
+  /* initial condition */
+  if (n == 0)
+    {
+      if (p == 0 && q == 0)
+	{
+	  mpq_set_si (coef_v, -1, 1);
+	}
+      return;
+    }
+
+  /* search buffer */
+  sprintf (filename, "two-body.TQ_v");
+  if (search_results (filename, n, p, q, coef_v) == 0)
+    return; /* found */
+
+  mpq_init (a);
+  mpq_init (tmp);
+
+  /* Vnpq : 1st term Pnpq */
+  TQ_p (n, p, q, coef_v);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Vnpq : 2nd term Ps(q-s)(p-n-1) */
+      TQ_p (s, q - s, p - n - 1, a);
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (n+s,n) */
+	  comb (tmp, n + s, n);
+	  mpq_mul (a, a, tmp);
+	  /* mul (-2n) */
+	  mpq_set_si (tmp, - 2 * n, 1);
+	  mpq_mul (a, a, tmp);
+	  /* div (n+1) */
+	  mpq_set_si (tmp, n + 1, 1);
+	  mpq_div (a, a, tmp);
+	  /* div (2n+3) */
+	  mpq_set_si (tmp, 2 * n + 3, 1);
+	  mpq_div (a, a, tmp);
+
+	  mpq_add (coef_v, coef_v, a);
+	}
+    }
+
+  append_result (filename, n, p, q, coef_v);
+
+  mpq_clear (a);
+  mpq_clear (tmp);
+}
+
+
+/** for mobility functions **/
+/* calc coef Upq on xa by Eq. (JO-8.16)
+ * INPUT
+ *   p, q : (int)
+ *   mode == 0 for mobility function xa
+ *             where P1pq = delta_0p delta_0q
+ *   mode == 10 for resistance function X[AGP]
+ *             where Pn00 = Vn00 = delta_1n
+ *   mode == 11 for resistance function X[MQ]
+ *             where Pn00 = Vn00 = delta_2n
+ * OUTPUT
+ *   coef_u : (mpq_t)
+ */
+void
+x_u (int p, int q, int mode, mpq_t coef_u)
+{
+  int s;
+
+  mpq_t a, b;
+  mpq_t tmp;
+
+
+  /* clear Upq */
+  mpq_set_ui (coef_u, 0, 1);
+
+  if (p < 0
+      || q < 0)
+    {
+      return;
+    }
+
+  /* ad-hoc for U_{00} */
+  if (p == 0 && q == 0)
+    {
+      mpq_set_ui (coef_u, 1, 1);
+      return;
+    }
+
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Upq */
+      mpq_set_ui (a, 0, 1);
+      /* Upq : 1st term Ps(q-s)p */
+      X_p (s, q - s, p, 0/* mob for xa */, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul (3/4) */
+	  mpq_set_si (tmp, 3, 4);
+	  mpq_mul (b, b, tmp);
+	  /* div (2s-1) */
+	  mpq_set_si (tmp, (2 * s - 1), 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+      /* Upq : 2nd term Ps(q-s)(p-2) */
+      X_p (s, q - s, p - 2, 0/* mob for xa */, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -(1/4) */
+	  mpq_set_si (tmp, - 1, 4);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      /* Upq : 3rd term Vs(q-s-2)p */
+      X_v (s, q - s - 2, p, 0/* mob for xa */, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -(3/4) */
+	  mpq_set_si (tmp, - 3, 4);
+	  mpq_mul (b, b, tmp);
+	  /* div (2s+1) */
+	  mpq_set_si (tmp, (2 * s + 1), 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul -(s+1) */
+	  mpq_set_si (tmp, -(s + 1), 1);
+	  mpq_mul (a, a, tmp);
+
+	  mpq_add (coef_u, coef_u, a);
+	}
+    }
+
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+}
+
+/* calc coef Upq for ya by Eq. (JO-9.16)
+ * INPUT
+ *   p, q : (int)
+ *   mode == 0 for mobility functions ya and yb
+ *             where P1pq = delta_0p delta_0q
+ *             and   Q1pq = 0
+ *        == 1 for mobility functions yc
+ *             where P1pq = 0
+ *             and   Q1pq = delta_0p delta_0q
+ *   mode == 10 for resistance functions Y[A]
+ *             where Pn00 = Vn00 = delta_1n
+ *   mode == 11 for resistance functions Y[]
+ *             where Pn00 = Vn00 = delta_2n
+ * OUTPUT
+ *   coef_u : (mpq_t)
+ */
+void
+y_u (int p, int q, int mode, mpq_t coef_u)
+{
+  int s;
+
+  mpq_t a, b;
+  mpq_t tmp;
+
+
+  /* clear Upq */
+  mpq_set_ui (coef_u, 0, 1);
+
+  if (p < 0
+      || q < 0)
+    {
+      return;
+    }
+
+  /* ad-hoc for U_{00} */
+  if (p == 0 && q == 0)
+    {
+      if (mode == 0)
+	{
+	  mpq_set_ui (coef_u, 1, 1);
+	}
+      else
+	{
+	  mpq_set_ui (coef_u, 0, 1);
+	}
+      return;
+    }
+
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Upq */
+      mpq_set_ui (a, 0, 1);
+      /* Upq : 1st term Ps(q-s)p */
+      Y_p (s, q - s, p, mode, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul (3/4s) */
+	  mpq_set_si (tmp, 3, (4 * s));
+	  mpq_mul (b, b, tmp);
+	  /* mlu (2-s) */
+	  mpq_set_si (tmp, (2 - s), 1);
+	  mpq_mul (b, b, tmp);
+	  /* div (2s-1) */
+	  mpq_set_si (tmp, (2 * s - 1), 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+      /* Upq : 2nd term Ps(q-s)(p-2) */
+      Y_p (s, q - s, p - 2, mode, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul (1/4) */
+	  mpq_set_si (tmp, 1, 4);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      /* Upq : 3rd term Vs(q-s-2)p */
+      Y_v (s, q - s - 2, p, mode, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul (3/4) */
+	  mpq_set_si (tmp, 3, 4);
+	  mpq_mul (b, b, tmp);
+	  /* div (2s+1) */
+	  mpq_set_si (tmp, (2 * s + 1), 1);
+	  mpq_div (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      /* Upq : 4th term Qs(q-s-1)p */
+      Y_q (s, q - s - 1, p, mode, b);
+
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -1 */
+	  mpq_set_si (tmp, -1, 1);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (s+1, 2) */
+	  comb (tmp, s + 1, 2);
+	  mpq_mul (a, a, tmp);
+
+	  /* mul -1 */
+	  mpq_set_si (tmp, -1, 1);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (coef_u, coef_u, a);
+	}
+    }
+
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+}
+
+/* calc coef Qpq for ya by Eq. (JO-9.17)
+ * INPUT
+ *   p, q : (int)
+ *   mode == 0 for mobility functions ya and yb
+ *             where P1pq = delta_0p delta_0q
+ *             and   Q1pq = 0
+ *        == 1 for mobility functions yc
+ *             where P1pq = 0
+ *             and   Q1pq = delta_0p delta_0q
+ *   mode == 10 for resistance functions Y[A]
+ *             where Pn00 = Vn00 = delta_1n
+ *   mode == 11 for resistance functions Y[]
+ *             where Pn00 = Vn00 = delta_2n
+ * OUTPUT
+ *   coef_q : (mpq_t)
+ */
+void
+y_q (int p, int q, int mode, mpq_t coef_q)
+{
+  int s;
+
+  mpq_t a, b;
+  mpq_t tmp;
+
+
+  /* clear Qpq */
+  mpq_set_ui (coef_q, 0, 1);
+
+  if (p < 0
+      || q < 0)
+    {
+      return;
+    }
+
+  /* ad-hoc for Q_{00} */
+  if (p == 0 && q == 0)
+    {
+      if (mode == 0)
+	{
+	  mpq_set_ui (coef_q, 0, 1);
+	}
+      else
+	{
+	  mpq_set_ui (coef_q, 1, 1);
+	}
+    }
+
+  mpq_init (a);
+  mpq_init (b);
+  mpq_init (tmp);
+
+  for (s = 1; s <= q; s ++)
+    {
+      /* Qnpq */
+      mpq_set_ui (a, 0, 1);
+      /* Qnpq : 1st term Qs(q-s-1)(p-1) */
+      Y_q (s, q - s - 1, p - 1, mode, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul (s / 2) */
+	  mpq_set_si (tmp, s, 2);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+      /* Qnpq : 2nd term Ps(q-s)(p-1) */
+      Y_p (s, q - s, p - 1, mode, b);
+      if (mpz_cmp_si (mpq_numref (b), 0))
+	{
+	  /* mul -(3 / 4s) */
+	  mpq_set_si (tmp, - 3, 4 * s);
+	  mpq_mul (b, b, tmp);
+
+	  mpq_add (a, a, b);
+	}
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (s+1,2) */
+	  comb (tmp, s + 1, 2);
+	  mpq_mul (a, a, tmp);
+
+	  /* mul -1 */
+	  mpq_set_si (tmp, -1, 1);
+	  mpq_mul (a, a, tmp);
+
+	  mpq_add (coef_q, coef_q, a);
+	}
+    }
+
+  mpq_clear (a);
+  mpq_clear (b);
+  mpq_clear (tmp);
+}
+
+
+/* calc coef Qpq for xc by Eq. (JO-12.3)
+ * INPUT
+ *   p, q : (int)
+ * OUTPUT
+ *   coef_q : (mpq_t)
+ */
+void
+x_q (int p, int q, mpq_t coef_q)
+{
+  int s;
+
+  mpq_t a;
+  mpq_t tmp;
+
+
+  /* clear Qpq */
+  mpq_set_ui (coef_q, 0, 1);
+
+  if (p < 0
+      || q < 0)
+    {
+      /* clear Qnpq */
+      mpq_set_ui (coef_q, 0, 1);
+      return;
+    }
+
+  /* ad-hoc for Q_{00} */
+  if (p == 0 && q == 0)
+    {
+      mpq_set_ui (coef_q, 1, 1);
+      return;
+    }
+
+  mpq_init (a);
+  mpq_init (tmp);
+
+  /* clear Qnpq */
+  mpq_set_ui (coef_q, 0, 1);
+  for (s = 1; s <= q; s ++)
+    {
+      /* Qnpq : Qs(q-s-1)(p-1) */
+      X_q (s, q - s - 1, p - 1, 0/* mobility */, a);
+
+      if (mpz_cmp_si (mpq_numref (a), 0))
+	{
+	  /* mul comb (s+1) */
+	  mpq_set_si (tmp, (s + 1), 1);
+	  mpq_mul (a, a, tmp);
+	  /* mul -(s / 2) */
+	  mpq_set_si (tmp, -s, 2);
+	  mpq_mul (a, a, tmp);
+
+	  mpq_add (coef_q, coef_q, a);
+	}
+    }
+
+  mpq_clear (a);
+  mpq_clear (tmp);
+
+  mpq_canonicalize (coef_q);
+}
+
+
+/** utility functions **/
 /* calc comb
  * INPUT
  *   comb : pointer
