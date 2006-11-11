@@ -1,6 +1,6 @@
 /* exact solution solver for 2 particles in Stokes flows using GMP library
  * Copyright (C) 1999-2006 Kengo Ichiki <kichiki@users.sourceforge.net>
- * $Id: two-body.c,v 5.1 2006/11/09 21:44:00 ichiki Exp $
+ * $Id: two-body.c,v 5.2 2006/11/09 22:29:22 ichiki Exp $
  *
  * References:
  * [JO-1984] D.J.Jeffrey and Onishi, J. Fluid Mech. 139 (1984) pp.261-290.
@@ -30,13 +30,13 @@
  */
 #include <stdio.h>
 #include <stdlib.h> /* malloc() free() */
+#include <string.h>
 #include <gmp.h>
 
 
 /* function prototypes */
-int
-main (void);
 
+/** coefficients for functions **/
 void
 XA (int nmax, int flag);
 void
@@ -125,10 +125,7 @@ int
 comb (mpq_t comb, int n, int m);
 
 void
-print_mpq (mpq_t x);
-void
 fprint_mpq (FILE *out, mpq_t x);
-
 int
 search_results (char *file, int n, int p, int q, mpq_t coef);
 void
@@ -145,31 +142,22 @@ main (void)
   /* mobility functions */
   //xa (nmax, 0);
   //ya (nmax, 0);
-  /*
-  yb (nmax, 0);
-  xc (nmax, 0);
-  yc (nmax, 0);
-  exit (0);
-  */
+  //yb (nmax, 0);
+  //xc (nmax, 0);
+  //yc (nmax, 0);
 
-  //xa (nmax, 1);
-  //ya (nmax, 1);
-  //yb (nmax, 1);
-  //xc (nmax, 1);
-  //yc (nmax, 1);
-
-  //XA (nmax, 1);
-  //YA (nmax, 1);
-  //YB (nmax, 1);
-  //XC (nmax, 1);
-  //YC (nmax, 1);
-  //XG (nmax, 1);
-  //YG (nmax, 1);
-  //YH (nmax, 1);
-  //XM (nmax, 1);
-  YM (nmax, 1);
-  //ZM (nmax, 1);
-  //XP (nmax, 1);
+  //XA (nmax, 2);
+  //YA (nmax, 2);
+  //YB (nmax, 2);
+  //XC (nmax, 2);
+  //YC (nmax, 2);
+  //XG (nmax, 2);
+  //YG (nmax, 2);
+  //YH (nmax, 2);
+  //XM (nmax, 2);
+  //YM (nmax, 2); // renewing
+  //ZM (nmax, 2);
+  XP (nmax, 2);
   //XQ (nmax, 1);
   //TQ (nmax, 1);
 
@@ -177,10 +165,327 @@ main (void)
 }
 
 
+/** I/O utility routines **/
+
+/* for C source codes */
+void
+print_mpq_double (mpq_t x)
+{
+  double d;
+
+  d = mpq_get_d (x);
+  fprintf (stdout, "%.15e", d);
+}
+
+void
+print_C_header (const char * label)
+{
+  fprintf (stdout, "void twobody_%s (int n, double l, double * f)\n",
+	   label);
+  fprintf (stdout, "{\n");
+}
+
 /*
  * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
+ *  q :
+ *  q0: order of q in the last term (0 for the first term)
+ */
+void
+print_C_coef_q (mpq_t coef, int q, int q0)
+{
+  fprintf (stdout, "    + ");
+
+  int i;
+  for (i = q0; i < q; i ++)
+    {
+      fprintf (stdout, "l * ");
+    }
+
+  fprintf (stdout, "(");
+
+  print_mpq_double (coef);
+
+  fprintf (stdout, " // q = %d\n", q);
+}
+
+void
+print_C_close_q (int nq, int k)
+{
+  fprintf (stdout, "    ");
+  int i;
+  for (i = 0; i < nq; i ++)
+    {
+      fprintf (stdout, ")");
+    }
+  if (nq == 0)
+    {
+      fprintf (stdout, "0.0;\n");
+    }
+  else
+    {
+      fprintf (stdout, ";\n");
+    }
+  fprintf (stdout, "  if (n == %d) return;\n", k);
+}
+
+void
+print_C_footer (void)
+{
+  fprintf (stdout, "}\n\n");
+}
+
+
+/* for text */
+void
+print_mpq (mpq_t x)
+{
+  mpz_out_str (stdout, 10, mpq_numref (x));
+
+  if (mpz_cmp_ui (mpq_denref (x), 1))
+    {
+      printf ("/");
+      mpz_out_str (stdout, 10, mpq_denref (x));
+    }
+}
+
+
+void
+print_text_coef_q (mpq_t x, int q, int nq)
+{
+  if (nq > 0 && mpz_sgn (mpq_numref (x)) == 1)
+    {
+      fprintf (stdout, " +");
+    }
+  else
+    {
+      fprintf (stdout, " ");
+    }
+  print_mpq (x);
+
+  if (q == 1)
+    {
+      fprintf (stdout, " l");
+    }
+  else
+    {
+      fprintf (stdout, " l^%d", q);
+    }
+}
+
+void
+print_text_fk (mpq_t f, int k, const char * label)
+{
+  fprintf (stdout, "%sf [%d] = ", label, k);
+  print_mpq (f);
+  fprintf (stdout, "\n");
+}
+
+
+/* for latex source */
+void
+print_mpz_formed (mpz_t x)
+{
+  char buf  [1024];
+  char buf2 [1024];
+
+  int len;
+  int i, j;
+
+  gmp_snprintf (buf, 1024, "%Zd", x);
+
+  len = strlen (buf);
+  j = len + 2 * ((len-1)/3);
+  buf2 [j] = '\0';
+  j --;
+  for (i = 0; i < (len - 3); i += 3, j -= 5)
+    {
+      buf2 [j  ] = buf [len-1-i  ];
+      buf2 [j-1] = buf [len-1-i-1];
+      buf2 [j-2] = buf [len-1-i-2];
+      buf2 [j-3] = ' ';
+      buf2 [j-4] = '\\';
+    }
+  for (; i < len; i ++, j --)
+    {
+      buf2 [j] = buf [len-1-i];
+    }
+  if (j != -1)
+    {
+      fprintf (stderr, "something is wrong...\n");
+      fprintf (stderr, "check %s, %s\n", buf, buf2);
+      exit (1);
+    }
+
+  fprintf (stdout, "%s", buf2);
+}
+
+/*
+ * INPUT
+ *  flag_plus : 0, don't print "+" for positive x.
+ *              1, print "+" for positive x.
+ */
+void
+print_mpq_formed (mpq_t x, int flag_plus)
+{
+  if (flag_plus == 1
+      && mpz_sgn (mpq_numref (x)) == 1)
+    {
+      fprintf (stdout, "+");
+    }
+  if (mpz_cmp_ui (mpq_denref (x), 1))
+    {
+      /* fraction */
+      fprintf (stdout, "\\frac{");
+      print_mpz_formed (mpq_numref (x));
+      fprintf (stdout, "}{");
+      print_mpz_formed (mpq_denref (x));
+      fprintf (stdout, "}");
+    }
+  else
+    {
+      print_mpz_formed (mpq_numref (x));
+    }
+}
+
+void
+print_latex_coef_q (mpq_t x, int q, int nq)
+{
+  if (nq != 0 && nq % 4 == 0)
+    {
+      fprintf (stdout, "  \\nonumber\\\\\n  &&\n");
+    }
+  fprintf (stdout, "  ");
+  if (nq == 0) print_mpq_formed (x, 0); // no "+"
+  else         print_mpq_formed (x, 1); // with "+"
+
+  if (q == 0)
+    {
+      fprintf (stdout, "\n");
+    }
+  else if (q == 1)
+    {
+      fprintf (stdout, " \\lambda\n");
+    }
+  else
+    {
+      fprintf (stdout, " \\lambda^{%d}\n", q);
+    }
+}
+
+void
+print_latex_fk (mpq_t f, int k, const char * label)
+{
+  fprintf (stdout, "\\begin{equation}\n  f^{\\rm %s}_{%d} = ", label, k);
+  print_mpq_formed (f, 0);
+  fprintf (stdout, "\n\\end{equation}\n");
+}
+
+/** top-level I/O routines for C source codes and latex source;
+ *  flag : 0 -- print f_k with lambda=1
  *         1 -- print each coef of l^q
+ *         2 -- print C source
+ *         3 -- print latex source for f_k with lambda=1
+ *         4 -- print latex source for each coef of l^q
+ **/
+/* there are 5 stages
+ * 1) output overall header for the function
+ * 2) some header statement for k
+ * 3) output the coeficieint for q
+ * 4) some footer statement at the end of k
+ * 5) overall footer for the function
+ */
+
+/* 1 : output overall header for the function */
+void
+print_fk_header (int flag, const char * label)
+{
+  if (flag == 2) // C source
+    {
+      print_C_header (label);
+    }
+}
+
+/* 2 : some header statement for k */
+void
+print_fk_header_k (int flag, int k, const char * label)
+{
+  if (flag == 1) // text for each coef of l^q
+    {
+      fprintf (stdout, "%sf [%d] = ",
+	       label, k);
+    }
+  else if (flag == 4) // latex for each coef of l^q
+    {
+      fprintf (stdout, "\\begin{eqnarray}\n  f^{\\rm %s}_{%d} &=&\n",
+	       label, k);
+    }
+  else if (flag == 2) // C source
+    {
+      fprintf (stdout, "  f [%d] =\n", k);
+    }
+}
+
+/* 3 : output the coeficieint for q */
+void
+print_fk_q (int flag, mpq_t coef, mpq_t f, int q, int q0, int nq)
+{
+  if (flag == 1) // text for each coef of l^q
+    {
+      print_text_coef_q (coef, q, nq);
+    }
+  else if (flag == 4) // latex for each coef of l^q
+    {
+      print_latex_coef_q (coef, q, nq);
+    }
+  else if (flag == 2) // C source
+    {
+      print_C_coef_q (coef, q, q0);
+    }
+}
+
+/* 4 : some footer statement at the end of k */
+void
+print_fk_footer_k (int flag, int k, mpq_t f, int nq, const char * label)
+{
+  if (flag == 0) // text for f_k with lambda=1
+    {
+      print_text_fk (f, k, label);
+    }
+  else if (flag == 1) // text for each coef of l^q
+    {
+      fprintf (stdout, "\n");
+    }
+  else if (flag == 3) // latex for f_k with lambda=1
+    {
+      print_latex_fk (f, k, label);
+    }
+  else if (flag == 4) // latex for each coef of l^q
+    {
+      fprintf (stdout, "\\end{eqnarray}\n");
+    }
+  else if (flag == 2) // C source
+    {
+      print_C_close_q (nq, k);
+    }
+}
+
+/* 5 : overall footer for the function */
+void
+print_fk_footer (int flag)
+{
+  if (flag == 2) // C source
+    {
+      print_C_footer ();
+    }
+}
+
+
+/** coefficients for functions **/
+/*  flag : 0 -- print f_k with lambda=1
+ *         1 -- print each coef of l^q
+ *         2 -- print C source
+ *         3 -- print latex source for f_k with lambda=1
+ *         4 -- print latex source for each coef of l^q
  */
 void
 XA (int nmax, int flag)
@@ -191,6 +496,12 @@ XA (int nmax, int flag)
   mpq_t two;
   mpq_t two_k;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "XA");
+
   mpq_init (f);
   mpq_init (coef_p);
   mpq_init (two);
@@ -201,14 +512,12 @@ XA (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "XAf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "XA");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  X_p (1, k - q, q, 10/* for XA */, coef_p);
@@ -217,28 +526,20 @@ XA (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_p, coef_p, two_k);
-	      if (flag != 0)
-		{
-		  print_mpq (coef_p);
-		  fprintf (stdout, " l^%d ", q);
-		}
-	      else
-		{
-		  mpq_add (f, f, coef_p);
-		}
+	      mpq_add (f, f, coef_p);
+
+	      /* 3 : output the coeficieint for q */
+	      print_fk_q (flag, coef_p, f, q, q0, nq);
+	      q0 = q;
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "XAf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "XA");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -246,11 +547,6 @@ XA (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 YA (int nmax, int flag)
 {
@@ -260,6 +556,12 @@ YA (int nmax, int flag)
   mpq_t two;
   mpq_t two_k;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "YA");
+
   mpq_init (f);
   mpq_init (coef_p);
   mpq_init (two);
@@ -270,14 +572,12 @@ YA (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "YAf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "YA");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  Y_p (1, k - q, q, 10/* for YA (0, 1, 1) */, coef_p);
@@ -286,28 +586,20 @@ YA (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_p, coef_p, two_k);
-	      if (flag != 0)
-		{
-		  print_mpq (coef_p);
-		  fprintf (stdout, " l^%d ", q);
-		}
-	      else
-		{
-		  mpq_add (f, f, coef_p);
-		}
+	      mpq_add (f, f, coef_p);
+
+	      /* 3 : output the coeficieint for q */
+	      print_fk_q (flag, coef_p, f, q, q0, nq);
+	      q0 = q;
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "YAf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "YA");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -315,11 +607,6 @@ YA (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 YB (int nmax, int flag)
 {
@@ -328,6 +615,12 @@ YB (int nmax, int flag)
   mpq_t coef_q;
   mpq_t two;
   mpq_t two_k;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "YB");
 
   mpq_init (f);
   mpq_init (coef_q);
@@ -340,14 +633,12 @@ YB (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "YBf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "YB");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  Y_q (1, k - q, q, 10/* for YB (0, 1, 1) */, coef_q);
@@ -356,28 +647,20 @@ YB (int nmax, int flag)
 	    {
 	      /* mul 2^k and another 2 */
 	      mpq_mul (coef_q, coef_q, two_k);
-	      if (flag != 0)
-		{
-		  print_mpq (coef_q);
-		  fprintf (stdout, " l^%d ", q);
-		}
-	      else
-		{
-		  mpq_add (f, f, coef_q);
-		}
+	      mpq_add (f, f, coef_q);
+
+	      /* 3 : output the coeficieint for q */
+	      print_fk_q (flag, coef_q, f, q, q0, nq);
+	      q0 = q;
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "YBf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "YB");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_q);
@@ -385,11 +668,6 @@ YB (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 XC (int nmax, int flag)
 {
@@ -399,6 +677,12 @@ XC (int nmax, int flag)
   mpq_t two;
   mpq_t two_k;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "XC");
+
   mpq_init (f);
   mpq_init (coef_q);
   mpq_init (two);
@@ -409,14 +693,12 @@ XC (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "XCf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "XC");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  X_q (1, k - q, q, 1/* resistance */, coef_q);
@@ -425,36 +707,29 @@ XC (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_q, coef_q, two_k);
-	      if (flag != 0)
+	      mpq_add (f, f, coef_q);
+
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 1)
 		{
-		  print_mpq (coef_q);
-		  if (k%2 == 1)
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
-		  else
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
+		  // is this right?
+		  print_fk_q (flag, coef_q, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_q);
+		  print_fk_q (flag, coef_q, f, q, q0, nq);
+		  q0 = q;
 		}
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "XCf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "XC");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_q);
@@ -462,11 +737,6 @@ XC (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 YC (int nmax, int flag)
 {
@@ -476,6 +746,12 @@ YC (int nmax, int flag)
   mpq_t two;
   mpq_t two_k;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "YC");
+
   mpq_init (f);
   mpq_init (coef_q);
   mpq_init (two);
@@ -486,14 +762,12 @@ YC (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "YCf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "YC");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  Y_q (1, k - q, q, 11/* for YC (1, 0, 0) */, coef_q);
@@ -502,36 +776,29 @@ YC (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_q, coef_q, two_k);
-	      if (flag != 0)
+	      mpq_add (f, f, coef_q);
+
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (coef_q);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
+		  print_fk_q (flag, coef_q, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_q);
+		  // is this right?
+		  print_fk_q (flag, coef_q, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "YCf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "YC");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_q);
@@ -539,11 +806,6 @@ YC (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 XG (int nmax, int flag)
 {
@@ -555,6 +817,12 @@ XG (int nmax, int flag)
 
   mpq_t three4;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "XG");
+
   mpq_init (f);
   mpq_init (coef_p);
   mpq_init (two);
@@ -568,14 +836,12 @@ XG (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "XGf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "XG");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  X_p (2, k - q, q, 10/* for X[AGP] */, coef_p);
@@ -587,29 +853,20 @@ XG (int nmax, int flag)
 	      /* mul (3/4) */
 	      mpq_mul (coef_p, coef_p, three4);
 
-	      if (flag != 0)
-		{
-		  print_mpq (coef_p);
-		  fprintf (stdout, " l^%d ", q);
-		}
-	      else
-		{
-		  mpq_add (f, f, coef_p);
-		}
+	      mpq_add (f, f, coef_p);
+
+	      /* 3 : output the coeficieint for q */
+	      print_fk_q (flag, coef_p, f, q, q0, nq);
+	      q0 = q;
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "XGf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "XG");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -619,11 +876,6 @@ XG (int nmax, int flag)
   mpq_clear (three4);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 YG (int nmax, int flag)
 {
@@ -634,6 +886,12 @@ YG (int nmax, int flag)
   mpq_t two_k;
 
   mpq_t three4;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "YG");
 
   mpq_init (f);
   mpq_init (coef_p);
@@ -648,14 +906,12 @@ YG (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "YGf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "YG");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  Y_p (2, k - q, q, 10/* for YG (0, 1, 1) */, coef_p);
@@ -667,29 +923,20 @@ YG (int nmax, int flag)
 	      /* mul (3/4) */
 	      mpq_mul (coef_p, coef_p, three4);
 
-	      if (flag != 0)
-		{
-		  print_mpq (coef_p);
-		  fprintf (stdout, " l^%d ", q);
-		}
-	      else
-		{
-		  mpq_add (f, f, coef_p);
-		}
+	      mpq_add (f, f, coef_p);
+
+	      /* 3 : output the coeficieint for q */
+	      print_fk_q (flag, coef_p, f, q, q0, nq);
+	      q0 = q;
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "YGf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "YG");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -699,11 +946,6 @@ YG (int nmax, int flag)
   mpq_clear (three4);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 YH (int nmax, int flag)
 {
@@ -714,6 +956,12 @@ YH (int nmax, int flag)
   mpq_t two_k;
 
   mpq_t mthree8;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "YH");
 
   mpq_init (f);
   mpq_init (coef_p);
@@ -728,14 +976,12 @@ YH (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "YHf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "YH");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  Y_p (2, k - q, q, 11/* for YH (1, 0, 0) */, coef_p);
@@ -747,37 +993,29 @@ YH (int nmax, int flag)
 	      /* mul (-3/8) */
 	      mpq_mul (coef_p, coef_p, mthree8);
 
-	      if (flag != 0)
+	      mpq_add (f, f, coef_p);
+
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (coef_p);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
+		  print_fk_q (flag, coef_p, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_p);
+		  // is this right?
+		  print_fk_q (flag, coef_p, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "YHf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "YH");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -787,11 +1025,6 @@ YH (int nmax, int flag)
   mpq_clear (mthree8);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 XM (int nmax, int flag)
 {
@@ -801,6 +1034,12 @@ XM (int nmax, int flag)
   mpq_t two;
   mpq_t two_k;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "XM");
+
   mpq_init (f);
   mpq_init (coef_p);
   mpq_init (two);
@@ -811,15 +1050,12 @@ XM (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "XMf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "XM");
+      mpq_set_ui (f, 0, 1);
 
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  X_p (2, k - q, q, 11/* for XM */, coef_p);
@@ -828,38 +1064,29 @@ XM (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_p, coef_p, two_k);
+	      mpq_add (f, f, coef_p);
 
-	      if (flag != 0)
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (coef_p);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
+		  print_fk_q (flag, coef_p, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_p);
+		  // is this right?
+		  print_fk_q (flag, coef_p, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "XMf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "XM");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -867,11 +1094,6 @@ XM (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 YM (int nmax, int flag)
 {
@@ -881,6 +1103,12 @@ YM (int nmax, int flag)
   mpq_t two;
   mpq_t two_k;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "YM");
+
   mpq_init (f);
   mpq_init (coef_p);
   mpq_init (two);
@@ -891,15 +1119,12 @@ YM (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "YMf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "YM");
+      mpq_set_ui (f, 0, 1);
 
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  Y_p (2, k - q, q, 12/* for YM (0, 2, 2)*/, coef_p);
@@ -908,38 +1133,29 @@ YM (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_p, coef_p, two_k);
+	      mpq_add (f, f, coef_p);
 
-	      if (flag != 0)
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (coef_p);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
+		  print_fk_q (flag, coef_p, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_p);
+		  // is this right?
+		  print_fk_q (flag, coef_p, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "YMf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "YM");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -947,11 +1163,6 @@ YM (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 ZM (int nmax, int flag)
 {
@@ -961,6 +1172,12 @@ ZM (int nmax, int flag)
   mpq_t two;
   mpq_t two_k;
 
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "ZM");
+
   mpq_init (f);
   mpq_init (coef_p);
   mpq_init (two);
@@ -971,15 +1188,12 @@ ZM (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "ZMf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "ZM");
+      mpq_set_ui (f, 0, 1);
 
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  ZM_p (2, k - q, q, 0, 2, 2, coef_p);
@@ -988,38 +1202,29 @@ ZM (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_p, coef_p, two_k);
+	      mpq_add (f, f, coef_p);
 
-	      if (flag != 0)
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (coef_p);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
+		  print_fk_q (flag, coef_p, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_p);
+		  // is this right?
+		  print_fk_q (flag, coef_p, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "ZMf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "ZM");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_p);
@@ -1027,11 +1232,6 @@ ZM (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 XP (int nmax, int flag)
 {
@@ -1041,6 +1241,12 @@ XP (int nmax, int flag)
   mpq_t tmp;
   mpq_t two;
   mpq_t two_k;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "XP");
 
   mpq_init (f);
   mpq_init (a);
@@ -1054,15 +1260,12 @@ XP (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "XPf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "XP");
+      mpq_set_ui (f, 0, 1);
 
+      nq = 0;
+      q0 = 0;
       for (q = 1; q <= k - 1; q ++)
 	{
 	  mpq_set_ui (a, 0, 1);
@@ -1074,41 +1277,29 @@ XP (int nmax, int flag)
 		{
 		  /* mul (two_k) */
 		  mpq_mul (b, b, two_k);
-		  /* mul 3 */
-		  mpq_set_ui (tmp, 3, 1);
+		  /* mul (3 / 2) */
+		  mpq_set_ui (tmp, 3, 2);
 		  mpq_mul (b, b, tmp);
-		  /* mul 2 */
-		  mpq_set_ui (tmp, 2, 1);
-		  mpq_div (b, b, tmp);
 
 		  mpq_add (a, a, b);
 		}
 	    }
 	  if (mpz_cmp_si (mpq_numref (a), 0))
 	    {
-	      if (flag != 0)
-		{
-		  print_mpq (a);
-		  fprintf (stdout, " l^%d ", q);
-		}
-	      else
-		{
-		  mpq_add (f, f, a);
-		}
+	      mpq_add (f, f, a);
+
+	      /* 3 : output the coeficieint for q */
+	      print_fk_q (flag, a, f, q, q0, nq);
+	      q0 = q;
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "XPf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "XP");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (a);
@@ -1120,9 +1311,6 @@ XP (int nmax, int flag)
 
 /* -- still something is wrong on f_8 (only) from JMB 1993
  * and question about the upper limit of "n"...
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
  */
 void
 XQ (int nmax, int flag)
@@ -1133,6 +1321,12 @@ XQ (int nmax, int flag)
   mpq_t tmp;
   mpq_t two;
   mpq_t two_k;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "XQ");
 
   mpq_init (f);
   mpq_init (a);
@@ -1146,15 +1340,12 @@ XQ (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "XQf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "XP");
+      mpq_set_ui (f, 0, 1);
 
+      nq = 0;
+      q0 = 0;
       for (q = 1; q <= k - 1; q ++)
 	{
 	  mpq_set_ui (a, 0, 1);
@@ -1167,49 +1358,38 @@ XQ (int nmax, int flag)
 		{
 		  /* mul (two_k) */
 		  mpq_mul (b, b, two_k);
-		  /* mul 5 */
-		  mpq_set_ui (tmp, 5, 1);
+		  /* mul (5 / 2) */
+		  mpq_set_ui (tmp, 5, 2);
 		  mpq_mul (b, b, tmp);
-		  /* mul 2 */
-		  mpq_set_ui (tmp, 2, 1);
-		  mpq_div (b, b, tmp);
 
 		  mpq_add (a, a, b);
 		}
 	    }
 	  if (mpz_cmp_si (mpq_numref (a), 0))
 	    {
-	      if (flag != 0)
+	      mpq_add (f, f, a);
+
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (a);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
+		  print_fk_q (flag, a, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, a);
+		  // is this right?
+		  print_fk_q (flag, a, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "XQf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "XQ");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (a);
@@ -1219,11 +1399,6 @@ XQ (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 TQ (int nmax, int flag)
 {
@@ -1232,6 +1407,12 @@ TQ (int nmax, int flag)
   mpq_t a, b;
   mpq_t two;
   mpq_t two_k;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "TQ");
 
   mpq_init (f);
   mpq_init (a);
@@ -1244,15 +1425,12 @@ TQ (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "TQf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "TQ");
+      mpq_set_ui (f, 0, 1);
 
+      nq = 0;
+      q0 = 0;
       for (q = 1; q <= k - 1; q ++)
 	{
 	  mpq_set_ui (a, 0, 1);
@@ -1270,37 +1448,29 @@ TQ (int nmax, int flag)
 	    }
 	  if (mpz_cmp_si (mpq_numref (a), 0))
 	    {
-	      if (flag != 0)
+	      mpq_add (f, f, a);
+
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (a);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q+1);
-		    }
+		  print_fk_q (flag, a, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, a);
+		  // is this right?
+		  print_fk_q (flag, a, f, q+1, q0, nq);
+		  q0 = q + 1;
 		}
+	      nq ++;
 	    }
 	}
-
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "TQf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "TQ");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (a);
@@ -1311,11 +1481,6 @@ TQ (int nmax, int flag)
 
 
 /** mobility functions **/
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 xa (int nmax, int flag)
 {
@@ -1324,6 +1489,12 @@ xa (int nmax, int flag)
   mpq_t coef_u;
   mpq_t two;
   mpq_t two_k;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "xa");
 
   mpq_init (f);
   mpq_init (coef_u);
@@ -1335,14 +1506,12 @@ xa (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "xaf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "xa");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  x_u (k - q, q, 0/* mob for xa */, coef_u);
@@ -1351,35 +1520,28 @@ xa (int nmax, int flag)
 	    {
 	      /* mul 2^k */
 	      mpq_mul (coef_u, coef_u, two_k);
-	      if (flag != 0)
+	      mpq_add (f, f, coef_u);
+
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0) // k == even
 		{
-		  print_mpq (coef_u);
-		  if (k%2 == 0) // k == even
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else // k == odd
-		    {
-		      fprintf (stdout, " l^%d ", q-1);
-		    }
+		  print_fk_q (flag, coef_u, f, q, q0, nq);
+		  q0 = q;
 		}
-	      else
+	      else // k == odd
 		{
-		  mpq_add (f, f, coef_u);
+		  print_fk_q (flag, coef_u, f, q-1, q0, nq);
+		  q0 = q - 1;
 		}
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "xaf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "xa");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_u);
@@ -1387,11 +1549,6 @@ xa (int nmax, int flag)
   mpq_clear (two_k);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 ya (int nmax, int flag)
 {
@@ -1402,6 +1559,12 @@ ya (int nmax, int flag)
   mpq_t two_k;
 
   mpq_t minus1;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "ya");
 
   mpq_init (f);
   mpq_init (coef_u);
@@ -1416,14 +1579,12 @@ ya (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "yaf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "ya");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  y_u (k - q, q, 0/* for ya and yb*/, coef_u);
@@ -1437,37 +1598,29 @@ ya (int nmax, int flag)
 		{
 		  mpq_mul (coef_u, coef_u, minus1);
 		}
+	      mpq_add (f, f, coef_u);
 
-	      if (flag != 0)
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0)
 		{
-		  print_mpq (coef_u);
-		  if (k%2 == 0)
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
-		  else
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q-1);
-		    }
+		  print_fk_q (flag, coef_u, f, q, q0, nq);
+		  q0 = q;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_u);
+		  // is this right?
+		  print_fk_q (flag, coef_u, f, q-1, q0, nq);
+		  q0 = q-1;
 		}
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "yaf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "ya");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_u);
@@ -1477,11 +1630,6 @@ ya (int nmax, int flag)
   mpq_clear (minus1);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 yb (int nmax, int flag)
 {
@@ -1493,6 +1641,12 @@ yb (int nmax, int flag)
 
   mpq_t three;
   mpq_t minus1;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "yb");
 
   mpq_init (f);
   mpq_init (coef_q);
@@ -1510,14 +1664,12 @@ yb (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "ybf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "yb");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  y_q (k - q, q, 0/* for ya and yb*/, coef_q);
@@ -1533,37 +1685,29 @@ yb (int nmax, int flag)
 		{
 		  mpq_mul (coef_q, coef_q, minus1);
 		}
+	      mpq_add (f, f, coef_q);
 
-	      if (flag != 0)
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 0)
 		{
-		  print_mpq (coef_q);
-		  if (k%2 == 0)
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q-1);
-		    }
-		  else
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
+		  // is this right?
+		  print_fk_q (flag, coef_q, f, q-1, q0, nq);
+		  q0 = q-1;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_q);
+		  print_fk_q (flag, coef_q, f, q, q0, nq);
+		  q0 = q;
 		}
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "ybf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "yb");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_q);
@@ -1574,11 +1718,6 @@ yb (int nmax, int flag)
   mpq_clear (minus1);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 xc (int nmax, int flag)
 {
@@ -1589,6 +1728,12 @@ xc (int nmax, int flag)
   //mpq_t two_k;
 
   mpq_t minus1;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "xc");
 
   mpq_init (f);
   mpq_init (coef_q);
@@ -1604,14 +1749,12 @@ xc (int nmax, int flag)
        k <= nmax;
        k++/*, mpq_mul (two_k, two_k, two)*/)
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "xcf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "xc");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  x_q (k - q, q, coef_q);
@@ -1625,37 +1768,29 @@ xc (int nmax, int flag)
 		  // is this right?
 		  mpq_mul (coef_q, coef_q, minus1);
 		}
+	      mpq_add (f, f, coef_q);
 
-	      if (flag != 0)
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 1)
 		{
-		  print_mpq (coef_q);
-		  if (k%2 == 1)
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q-2);
-		    }
-		  else
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
+		  // is this right?
+		  print_fk_q (flag, coef_q, f, q-2, q0, nq);
+		  q0 = q-2;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_q);
+		  print_fk_q (flag, coef_q, f, q, q0, nq);
+		  q0 = q;
 		}
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "xcf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "xc");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_q);
@@ -1665,11 +1800,6 @@ xc (int nmax, int flag)
   mpq_clear (minus1);
 }
 
-/*
- * INPUT
- *  flag : 0 -- print only f_k (lambda=1)
- *         1 -- print each coef of l^q
- */
 void
 yc (int nmax, int flag)
 {
@@ -1678,6 +1808,12 @@ yc (int nmax, int flag)
   mpq_t coef_q;
   mpq_t two;
   mpq_t two_k;
+
+  int nq = 0;
+  int q0 = 0;
+
+  /* 1 : output overall header for the function */
+  print_fk_header (flag, "yc");
 
   mpq_init (f);
   mpq_init (coef_q);
@@ -1691,14 +1827,12 @@ yc (int nmax, int flag)
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
-      if (flag != 0)
-	{
-	  fprintf (stdout, "ycf_%d = ", k);
-	}
-      else
-	{
-	  mpq_set_ui (f, 0, 1);
-	}
+      /* 2 : some header statement for k */
+      print_fk_header_k (flag, k, "xc");
+      mpq_set_ui (f, 0, 1);
+
+      nq = 0;
+      q0 = 0;
       for (q = 0; q <= k; q ++)
 	{
 	  y_q (k - q, q, 1/* for yc */, coef_q);
@@ -1709,36 +1843,29 @@ yc (int nmax, int flag)
 	      mpq_mul (coef_q, coef_q, two_k);
 	      // for adjusting the result by factor '1/2'...
 	      mpq_div (coef_q, coef_q, two);
-	      if (flag != 0)
+	      mpq_add (f, f, coef_q);
+
+	      /* 3 : output the coeficieint for q */
+	      if (k%2 == 1)
 		{
-		  print_mpq (coef_q);
-		  if (k%2 == 1)
-		    {
-		      // is this right?
-		      fprintf (stdout, " l^%d ", q-2);
-		    }
-		  else
-		    {
-		      fprintf (stdout, " l^%d ", q);
-		    }
+		  // is this right?
+		  print_fk_q (flag, coef_q, f, q-2, q0, nq);
+		  q0 = q-2;
 		}
 	      else
 		{
-		  mpq_add (f, f, coef_q);
+		  print_fk_q (flag, coef_q, f, q, q0, nq);
+		  q0 = q;
 		}
+	      nq ++;
 	    }
 	}
-      if (flag != 0)
-	{
-	  fprintf (stdout, "\n");
-	}
-      else
-	{
-	  fprintf (stdout, "ycf [%d] = ", k);
-	  print_mpq (f);
-	  fprintf (stdout, "\n");
-	}
+      /* 4 : some footer statement at the end of k */
+      print_fk_footer_k (flag, k, f, nq, "yc");
     }
+
+  /* 5 : overall footer for the function */
+  print_fk_footer (flag);
 
   mpq_clear (f);
   mpq_clear (coef_q);
@@ -3763,19 +3890,6 @@ comb (mpq_t comb, int n, int m)
   return (0);
 }
 
-/* output rational number on stdout
- */
-void
-print_mpq (mpq_t x)
-{
-  mpz_out_str (stdout, 10, mpq_numref (x));
-
-  if (mpz_cmp_ui (mpq_denref (x), 1))
-    {
-      printf ("/");
-      mpz_out_str (stdout, 10, mpq_denref (x));
-    }
-}
 
 /* output rational number on stdout
  */
@@ -3790,8 +3904,6 @@ fprint_mpq (FILE *out, mpq_t x)
       mpz_out_str (out, 10, mpq_denref (x));
     }
 }
-
-
 /* search coef in result file
  * INTPUT
  *   char *file : file name
