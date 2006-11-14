@@ -1,6 +1,6 @@
 /* exact solution solver for 2 particles in Stokes flows using GMP library
  * Copyright (C) 1999-2006 Kengo Ichiki <kichiki@users.sourceforge.net>
- * $Id: two-body.c,v 5.2 2006/11/09 22:29:22 ichiki Exp $
+ * $Id: two-body.c,v 5.3 2006/11/11 05:14:59 ichiki Exp $
  *
  * References:
  * [JO-1984] D.J.Jeffrey and Onishi, J. Fluid Mech. 139 (1984) pp.261-290.
@@ -133,33 +133,198 @@ append_result (char *file, int n, int p, int q, mpq_t coef);
 
 
 int
-main (void)
+main (int argc, char** argv)
 {
+  int i;
   int nmax;
+  int mode;
+  int func;
 
-  nmax = 100;
 
-  /* mobility functions */
-  //xa (nmax, 0);
-  //ya (nmax, 0);
-  //yb (nmax, 0);
-  //xc (nmax, 0);
-  //yc (nmax, 0);
+  /* default values */
+  nmax = 11;
+  mode = 0;
+  func = 0;
 
-  //XA (nmax, 2);
-  //YA (nmax, 2);
-  //YB (nmax, 2);
-  //XC (nmax, 2);
-  //YC (nmax, 2);
-  //XG (nmax, 2);
-  //YG (nmax, 2);
-  //YH (nmax, 2);
-  //XM (nmax, 2);
-  //YM (nmax, 2); // renewing
-  //ZM (nmax, 2);
-  XP (nmax, 2);
-  //XQ (nmax, 1);
-  //TQ (nmax, 1);
+  /* option analysis */
+  for (i = 1; i < argc; i++)
+    {
+      if (strcmp (argv [i], "-n") == 0 ||
+	  strcmp (argv [i], "--nmax") == 0)
+	{
+	  nmax = atoi (argv [++i]);
+	}
+      else if (strcmp (argv [i], "-m") == 0 ||
+	  strcmp (argv [i], "--mode") == 0)
+	{
+	  mode = atoi (argv [++i]);
+	}
+      else if (strcmp (argv [i], "-f") == 0 ||
+	       strcmp (argv [i], "--func") == 0)
+	{
+	  if (strcmp (argv [++i], "XA") == 0)
+	    {
+	      func =  1; // XA
+	    }
+	  else if (strcmp (argv [i], "YA") == 0)
+	    {
+	      func =  2; // YA
+	    }
+	  else if (strcmp (argv [i], "YB") == 0)
+	    {
+	      func =  3; // YB
+	    }
+	  else if (strcmp (argv [i], "XC") == 0)
+	    {
+	      func =  4; // XC
+	    }
+	  else if (strcmp (argv [i], "YC") == 0)
+	    {
+	      func =  5; // YC
+	    }
+	  else if (strcmp (argv [i], "XG") == 0)
+	    {
+	      func =  6; // XG
+	    }
+	  else if (strcmp (argv [i], "YG") == 0)
+	    {
+	      func =  7; // YG
+	    }
+	  else if (strcmp (argv [i], "YH") == 0)
+	    {
+	      func =  8; // YH
+	    }
+	  else if (strcmp (argv [i], "XM") == 0)
+	    {
+	      func =  9; // XM
+	    }
+	  else if (strcmp (argv [i], "YM") == 0)
+	    {
+	      func = 10; // YM
+	    }
+	  else if (strcmp (argv [i], "ZM") == 0)
+	    {
+	      func = 11; // ZM
+	    }
+	  else if (strcmp (argv [i], "XP") == 0)
+	    {
+	      func = 12; // XP
+	    }
+	  else if (strcmp (argv [i], "XQ") == 0)
+	    {
+	      func = 13; // XQ
+	    }
+	  else if (strcmp (argv [i], "TQ") == 0)
+	    {
+	      func = 14; // TQ
+	    }
+	  else if (strcmp (argv [i], "xa") == 0)
+	    {
+	      func = 15; // xa
+	    }
+	  else if (strcmp (argv [i], "ya") == 0)
+	    {
+	      func = 16; // ya
+	    }
+	  else if (strcmp (argv [i], "yb") == 0)
+	    {
+	      func = 17; // yb
+	    }
+	  else if (strcmp (argv [i], "xc") == 0)
+	    {
+	      func = 18; // xc
+	    }
+	  else if (strcmp (argv [i], "yc") == 0)
+	    {
+	      func = 19; // yc
+	    }
+	}
+      else
+	{
+	  fprintf (stderr, "$Id$\n");
+	  fprintf (stderr, "USAGE\n");
+	  fprintf (stderr, "%s [OPTIONS]\n", argv [0]);
+	  fprintf (stderr, "\t-h or --help : show this message.\n");
+          fprintf (stderr, "\t-n or --nmax : max order\n");
+          fprintf (stderr, "\t-m or --mode : output format\n");
+	  fprintf (stderr, "\t\t0 plain txt for f_k with lambda=1\n");
+          fprintf (stderr, "\t\t1 plain txt each coef of l^q\n");
+          fprintf (stderr, "\t\t2 C source\n");
+          fprintf (stderr, "\t\t3 latex source for f_k with lambda=1\n");
+          fprintf (stderr, "\t\t4 latex source for each coef of l^q\n");
+          fprintf (stderr, "\t-f or --func : function name to calculate;\n");
+	  fprintf (stderr, "\t\tXA, YA, YB, XC, YC,\n");
+	  fprintf (stderr, "\t\tXG, YG, YH, XM, YM, ZM,\n");
+	  fprintf (stderr, "\t\tXP, XQ, TQ,\n");
+	  fprintf (stderr, "\t\txa, ya, yb, xc, yc.\n");
+	  exit (1);
+	}
+    }
+  
+  switch (func)
+    {
+    case 1:
+      XA (nmax, mode);
+      break;
+    case 2:
+      YA (nmax, mode);
+      break;
+    case 3:
+      YB (nmax, mode);
+      break;
+    case 4:
+      XC (nmax, mode);
+      break;
+    case 5:
+      YC (nmax, mode);
+      break;
+    case 6:
+      XG (nmax, mode);
+      break;
+    case 7:
+      YG (nmax, mode);
+      break;
+    case 8:
+      YH (nmax, mode);
+      break;
+    case 9:
+      XM (nmax, mode);
+      break;
+    case 10:
+      YM (nmax, mode);
+      break;
+    case 11:
+      ZM (nmax, mode);
+      break;
+    case 12:
+      XP (nmax, mode);
+      break;
+    case 13:
+      XQ (nmax, mode);
+      break;
+    case 14:
+      TQ (nmax, mode);
+      break;
+    case 15:
+      xa (nmax, mode);
+      break;
+    case 16:
+      ya (nmax, mode);
+      break;
+    case 17:
+      yb (nmax, mode);
+      break;
+    case 18:
+      xc (nmax, mode);
+      break;
+    case 19:
+      yc (nmax, mode);
+      break;
+    default:
+      fprintf (stderr, "invalid function\n");
+      exit (1);
+      break;
+    }
 
   return 0;
 }
@@ -327,24 +492,36 @@ print_mpz_formed (mpz_t x)
 void
 print_mpq_formed (mpq_t x, int flag_plus)
 {
+  mpz_t tmp;
+  mpz_init (tmp);
+
   if (flag_plus == 1
       && mpz_sgn (mpq_numref (x)) == 1)
     {
       fprintf (stdout, "+");
     }
+  mpz_set (tmp, mpq_numref (x));
+  if (mpz_sgn (mpq_numref (x)) == -1) // negative
+    {
+      mpz_neg (tmp, tmp);
+      fprintf (stdout, "-");
+    }
   if (mpz_cmp_ui (mpq_denref (x), 1))
     {
       /* fraction */
       fprintf (stdout, "\\frac{");
-      print_mpz_formed (mpq_numref (x));
+      //print_mpz_formed (mpq_numref (x));
+      print_mpz_formed (tmp);
       fprintf (stdout, "}{");
       print_mpz_formed (mpq_denref (x));
       fprintf (stdout, "}");
     }
   else
     {
-      print_mpz_formed (mpq_numref (x));
+      //print_mpz_formed (mpq_numref (x));
+      print_mpz_formed (tmp);
     }
+  mpz_clear (tmp);
 }
 
 void
@@ -461,6 +638,13 @@ print_fk_footer_k (int flag, int k, mpq_t f, int nq, const char * label)
     }
   else if (flag == 4) // latex for each coef of l^q
     {
+      if (nq == 0)
+	{
+	  if (nq == 0)
+	    {
+	      fprintf (stdout, "  0\n");
+	    }
+	}
       fprintf (stdout, "\\end{eqnarray}\n");
     }
   else if (flag == 2) // C source
@@ -1341,7 +1525,7 @@ XQ (int nmax, int flag)
        k++, mpq_mul (two_k, two_k, two))
     {
       /* 2 : some header statement for k */
-      print_fk_header_k (flag, k, "XP");
+      print_fk_header_k (flag, k, "XQ");
       mpq_set_ui (f, 0, 1);
 
       nq = 0;
@@ -1828,7 +2012,7 @@ yc (int nmax, int flag)
        k++, mpq_mul (two_k, two_k, two))
     {
       /* 2 : some header statement for k */
-      print_fk_header_k (flag, k, "xc");
+      print_fk_header_k (flag, k, "yc");
       mpq_set_ui (f, 0, 1);
 
       nq = 0;
