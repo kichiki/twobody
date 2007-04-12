@@ -1,6 +1,6 @@
 /* exact solution solver for 2 particles in Stokes flows using GMP library
- * Copyright (C) 1999-2006 Kengo Ichiki <kichiki@users.sourceforge.net>
- * $Id: two-body.c,v 5.4 2006/11/14 05:04:35 ichiki Exp $
+ * Copyright (C) 1999-2007 Kengo Ichiki <kichiki@users.sourceforge.net>
+ * $Id: two-body.c,v 5.5 2007/03/25 21:19:44 ichiki Exp $
  *
  * References:
  * [JO-1984] D.J.Jeffrey and Onishi, J. Fluid Mech. 139 (1984) pp.261-290.
@@ -42,9 +42,9 @@ struct table_cache {
   mpq_t *coef;
 };
 
-struct table_cache * cache_p = NULL;
-struct table_cache * cache_v = NULL;
-struct table_cache * cache_q = NULL;
+struct table_cache *cache_p = NULL;
+struct table_cache *cache_v = NULL;
+struct table_cache *cache_q = NULL;
 int cache_max; // max size of cache
 int cache_i; // current index
 
@@ -52,41 +52,41 @@ int cache_i; // current index
 /* function prototypes */
 
 void
-print_mpq (FILE * out, mpq_t x);
+print_mpq (FILE *out, mpq_t x);
 
 
 /** coefficients for functions **/
-void XA (FILE * out, int n0, int nmax, int flag);
-void YA (FILE * out, int n0, int nmax, int flag);
-void YB (FILE * out, int n0, int nmax, int flag);
-void XC (FILE * out, int n0, int nmax, int flag);
-void YC (FILE * out, int n0, int nmax, int flag);
-void XG (FILE * out, int n0, int nmax, int flag);
-void YG (FILE * out, int n0, int nmax, int flag);
-void YH (FILE * out, int n0, int nmax, int flag);
-void XM (FILE * out, int n0, int nmax, int flag);
-void YM (FILE * out, int n0, int nmax, int flag);
-void ZM (FILE * out, int n0, int nmax, int flag);
+void XA (FILE *out, int n0, int nmax, int flag);
+void YA (FILE *out, int n0, int nmax, int flag);
+void YB (FILE *out, int n0, int nmax, int flag);
+void XC (FILE *out, int n0, int nmax, int flag);
+void YC (FILE *out, int n0, int nmax, int flag);
+void XG (FILE *out, int n0, int nmax, int flag);
+void YG (FILE *out, int n0, int nmax, int flag);
+void YH (FILE *out, int n0, int nmax, int flag);
+void XM (FILE *out, int n0, int nmax, int flag);
+void YM (FILE *out, int n0, int nmax, int flag);
+void ZM (FILE *out, int n0, int nmax, int flag);
 
-void XP (FILE * out, int n0, int nmax, int flag);
-void XQ (FILE * out, int n0, int nmax, int flag);
+void XP (FILE *out, int n0, int nmax, int flag);
+void XQ (FILE *out, int n0, int nmax, int flag);
 
-void TQ (FILE * out, int n0, int nmax, int flag);
+void TQ (FILE *out, int n0, int nmax, int flag);
 
 
 /** mobility functions **/
-void xa (FILE * out, int n0, int nmax, int flag);
-void ya (FILE * out, int n0, int nmax, int flag);
-void yb (FILE * out, int n0, int nmax, int flag);
-void xc (FILE * out, int n0, int nmax, int flag);
-void yc (FILE * out, int n0, int nmax, int flag);
+void xa (FILE *out, int n0, int nmax, int flag);
+void ya (FILE *out, int n0, int nmax, int flag);
+void yb (FILE *out, int n0, int nmax, int flag);
+void xc (FILE *out, int n0, int nmax, int flag);
+void yc (FILE *out, int n0, int nmax, int flag);
 
-void xg (FILE * out, int n0, int nmax, int flag);
-void yg (FILE * out, int n0, int nmax, int flag);
-void yh (FILE * out, int n0, int nmax, int flag);
-void xm (FILE * out, int n0, int nmax, int flag);
-void ym (FILE * out, int n0, int nmax, int flag);
-void zm (FILE * out, int n0, int nmax, int flag);
+void xg (FILE *out, int n0, int nmax, int flag);
+void yg (FILE *out, int n0, int nmax, int flag);
+void yh (FILE *out, int n0, int nmax, int flag);
+void xm (FILE *out, int n0, int nmax, int flag);
+void ym (FILE *out, int n0, int nmax, int flag);
+void zm (FILE *out, int n0, int nmax, int flag);
 
 
 /** recurrence relation solvers **/
@@ -125,20 +125,20 @@ comb (mpq_t comb, int n, int m);
 struct table_cache *
 table_cache_init (void);
 void
-table_cache_free (struct table_cache * c);
+table_cache_free (struct table_cache *c);
 void
-table_cache_append (struct table_cache * c,
+table_cache_append (struct table_cache *c,
 		    int n, int p, int q, mpq_t coef);
 void
-table_cache_set_i (struct table_cache * c,
+table_cache_set_i (struct table_cache *c,
 		   int i,
 		   int n, int p, int q, mpq_t coef);
 
 int
-search_results (char *file, struct table_cache * cache,
+search_results (char *file, struct table_cache *cache,
 		int n, int p, int q, mpq_t coef);
 void
-append_result (char *file, struct table_cache * cache,
+append_result (char *file, struct table_cache *cache,
 	       int n, int p, int q, mpq_t coef);
 
 
@@ -146,9 +146,9 @@ append_result (char *file, struct table_cache * cache,
 int
 main (int argc, char** argv)
 {
-  extern struct table_cache * cache_p;
-  extern struct table_cache * cache_v;
-  extern struct table_cache * cache_q;
+  extern struct table_cache *cache_p;
+  extern struct table_cache *cache_v;
+  extern struct table_cache *cache_q;
   extern int cache_max; // max size of cache
   extern int cache_i; // current index
 
@@ -306,7 +306,7 @@ main (int argc, char** argv)
 	}
       else
 	{
-	  fprintf (stderr, "$Id: two-body.c,v 5.4 2006/11/14 05:04:35 ichiki Exp $\n");
+	  fprintf (stderr, "$Id: two-body.c,v 5.5 2007/03/25 21:19:44 ichiki Exp $\n");
 	  fprintf (stderr, "USAGE\n");
 	  fprintf (stderr, "%s [OPTIONS]\n", argv [0]);
 	  fprintf (stderr, "\t-h or --help : show this message.\n");
@@ -461,7 +461,7 @@ main (int argc, char** argv)
 
 /* for C source codes */
 void
-print_mpq_double (FILE * out, mpq_t x)
+print_mpq_double (FILE *out, mpq_t x)
 {
   double d;
 
@@ -470,7 +470,7 @@ print_mpq_double (FILE * out, mpq_t x)
 }
 
 void
-print_C_header (FILE * out, const char * label)
+print_C_header (FILE *out, const char *label)
 {
   fprintf (out, "void twobody_%s (int n, double l, double * f)\n", label);
   fprintf (out, "{\n");
@@ -482,7 +482,7 @@ print_C_header (FILE * out, const char * label)
  *  q0: order of q in the last term (0 for the first term)
  */
 void
-print_C_coef_q (FILE * out, mpq_t coef, int q, int q0)
+print_C_coef_q (FILE *out, mpq_t coef, int q, int q0)
 {
   fprintf (out, "    + ");
 
@@ -500,7 +500,7 @@ print_C_coef_q (FILE * out, mpq_t coef, int q, int q0)
 }
 
 void
-print_C_close_q (FILE * out, int nq, int k)
+print_C_close_q (FILE *out, int nq, int k)
 {
   fprintf (out, "    ");
   int i;
@@ -520,7 +520,7 @@ print_C_close_q (FILE * out, int nq, int k)
 }
 
 void
-print_C_footer (FILE * out)
+print_C_footer (FILE *out)
 {
   fprintf (out, "}\n\n");
 }
@@ -528,7 +528,7 @@ print_C_footer (FILE * out)
 
 /* for text */
 void
-print_mpq (FILE * out, mpq_t x)
+print_mpq (FILE *out, mpq_t x)
 {
   mpz_out_str (out, 10, mpq_numref (x));
 
@@ -541,7 +541,7 @@ print_mpq (FILE * out, mpq_t x)
 
 
 void
-print_text_coef_q (FILE * out, mpq_t x, int q, int nq)
+print_text_coef_q (FILE *out, mpq_t x, int q, int nq)
 {
   if (nq > 0 && mpz_sgn (mpq_numref (x)) == 1)
     {
@@ -564,7 +564,7 @@ print_text_coef_q (FILE * out, mpq_t x, int q, int nq)
 }
 
 void
-print_text_fk (FILE * out, mpq_t f, int k, const char * label)
+print_text_fk (FILE *out, mpq_t f, int k, const char *label)
 {
   fprintf (out, "%sf [%d] = ", label, k);
   print_mpq (out, f);
@@ -574,7 +574,7 @@ print_text_fk (FILE * out, mpq_t f, int k, const char * label)
 
 /* for latex source */
 void
-print_mpz_formed (FILE * out, mpz_t x)
+print_mpz_formed (FILE *out, mpz_t x)
 {
   char buf  [1024];
   char buf2 [1024];
@@ -616,7 +616,7 @@ print_mpz_formed (FILE * out, mpz_t x)
  *              1, print "+" for positive x.
  */
 void
-print_mpq_formed (FILE * out, mpq_t x, int flag_plus)
+print_mpq_formed (FILE *out, mpq_t x, int flag_plus)
 {
   mpz_t tmp;
   mpz_init (tmp);
@@ -651,7 +651,7 @@ print_mpq_formed (FILE * out, mpq_t x, int flag_plus)
 }
 
 void
-print_latex_coef_q (FILE * out, mpq_t x, int q, int nq)
+print_latex_coef_q (FILE *out, mpq_t x, int q, int nq)
 {
   if (nq != 0 && nq % 4 == 0)
     {
@@ -676,7 +676,7 @@ print_latex_coef_q (FILE * out, mpq_t x, int q, int nq)
 }
 
 void
-print_latex_fk (FILE * out, mpq_t f, int k, const char * label)
+print_latex_fk (FILE *out, mpq_t f, int k, const char *label)
 {
   fprintf (out, "\\begin{equation}\n  f^{\\rm %s}_{%d} = ", label, k);
   print_mpq_formed (out, f, 0);
@@ -700,7 +700,7 @@ print_latex_fk (FILE * out, mpq_t f, int k, const char * label)
 
 /* 1 : output overall header for the function */
 void
-print_fk_header (FILE * out, int flag, const char * label)
+print_fk_header (FILE *out, int flag, const char *label)
 {
   if (flag == 2) // C source
     {
@@ -710,7 +710,7 @@ print_fk_header (FILE * out, int flag, const char * label)
 
 /* 2 : some header statement for k */
 void
-print_fk_header_k (FILE * out, int flag, int k, const char * label)
+print_fk_header_k (FILE *out, int flag, int k, const char *label)
 {
   if (flag == 1) // text for each coef of l^q
     {
@@ -730,7 +730,7 @@ print_fk_header_k (FILE * out, int flag, int k, const char * label)
 
 /* 3 : output the coeficieint for q */
 void
-print_fk_q (FILE * out, int flag, mpq_t coef, mpq_t f, int q, int q0, int nq)
+print_fk_q (FILE *out, int flag, mpq_t coef, mpq_t f, int q, int q0, int nq)
 {
   if (flag == 1) // text for each coef of l^q
     {
@@ -748,8 +748,8 @@ print_fk_q (FILE * out, int flag, mpq_t coef, mpq_t f, int q, int q0, int nq)
 
 /* 4 : some footer statement at the end of k */
 void
-print_fk_footer_k (FILE * out,
-		   int flag, int k, mpq_t f, int nq, const char * label)
+print_fk_footer_k (FILE *out,
+		   int flag, int k, mpq_t f, int nq, const char *label)
 {
   if (flag == 0) // text for f_k with lambda=1
     {
@@ -783,7 +783,7 @@ print_fk_footer_k (FILE * out,
 
 /* 5 : overall footer for the function */
 void
-print_fk_footer (FILE * out, int flag)
+print_fk_footer (FILE *out, int flag)
 {
   if (flag == 2) // C source
     {
@@ -800,7 +800,7 @@ print_fk_footer (FILE * out, int flag)
  *         4 -- print latex source for each coef of l^q
  */
 void
-XA (FILE * out, int n0, int nmax, int flag)
+XA (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -820,7 +820,13 @@ XA (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -860,7 +866,7 @@ XA (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-YA (FILE * out, int n0, int nmax, int flag)
+YA (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -880,7 +886,13 @@ YA (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -920,7 +932,7 @@ YA (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-YB (FILE * out, int n0, int nmax, int flag)
+YB (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -940,8 +952,13 @@ YB (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
+  // set two_k with n0
   // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
-  for (k = n0, mpq_set_ui (two_k, 2, 1);
+  for (k = 0, mpq_set_ui (two_k, 2, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -981,7 +998,7 @@ YB (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-XC (FILE * out, int n0, int nmax, int flag)
+XC (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1001,7 +1018,13 @@ XC (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1050,7 +1073,7 @@ XC (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-YC (FILE * out, int n0, int nmax, int flag)
+YC (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1070,7 +1093,13 @@ YC (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1119,7 +1148,7 @@ YC (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-XG (FILE * out, int n0, int nmax, int flag)
+XG (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1144,7 +1173,13 @@ XG (FILE * out, int n0, int nmax, int flag)
   mpq_set_ui (three4, 3, 4);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1189,7 +1224,7 @@ XG (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-YG (FILE * out, int n0, int nmax, int flag)
+YG (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1214,7 +1249,13 @@ YG (FILE * out, int n0, int nmax, int flag)
   mpq_set_ui (three4, 3, 4);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1259,7 +1300,7 @@ YG (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-YH (FILE * out, int n0, int nmax, int flag)
+YH (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1284,7 +1325,13 @@ YH (FILE * out, int n0, int nmax, int flag)
   mpq_set_si (mthree8, -3, 8);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1338,7 +1385,7 @@ YH (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-XM (FILE * out, int n0, int nmax, int flag)
+XM (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1358,7 +1405,13 @@ XM (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1407,7 +1460,7 @@ XM (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-YM (FILE * out, int n0, int nmax, int flag)
+YM (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1427,7 +1480,13 @@ YM (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1476,7 +1535,7 @@ YM (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-ZM (FILE * out, int n0, int nmax, int flag)
+ZM (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1496,7 +1555,13 @@ ZM (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1545,7 +1610,7 @@ ZM (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-XP (FILE * out, int n0, int nmax, int flag)
+XP (FILE *out, int n0, int nmax, int flag)
 {
   int k, q, n;
   mpq_t f;
@@ -1568,7 +1633,13 @@ XP (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1625,7 +1696,7 @@ XP (FILE * out, int n0, int nmax, int flag)
  * and question about the upper limit of "n"...
  */
 void
-XQ (FILE * out, int n0, int nmax, int flag)
+XQ (FILE *out, int n0, int nmax, int flag)
 {
   int k, q, n;
   mpq_t f;
@@ -1648,7 +1719,13 @@ XQ (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1712,7 +1789,7 @@ XQ (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-TQ (FILE * out, int n0, int nmax, int flag)
+TQ (FILE *out, int n0, int nmax, int flag)
 {
   int k, q, n;
   mpq_t f;
@@ -1733,7 +1810,13 @@ TQ (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1794,7 +1877,7 @@ TQ (FILE * out, int n0, int nmax, int flag)
 
 /** mobility functions **/
 void
-xa (FILE * out, int n0, int nmax, int flag)
+xa (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1814,7 +1897,13 @@ xa (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1862,7 +1951,7 @@ xa (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-ya (FILE * out, int n0, int nmax, int flag)
+ya (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1887,7 +1976,13 @@ ya (FILE * out, int n0, int nmax, int flag)
 
   mpq_set_ui (two, 2, 1);
   mpq_set_si (minus1, -1, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -1943,7 +2038,7 @@ ya (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-yb (FILE * out, int n0, int nmax, int flag)
+yb (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -1971,8 +2066,14 @@ yb (FILE * out, int n0, int nmax, int flag)
   mpq_set_ui (two, 2, 1);
   mpq_set_ui (three, 3, 1); // for adjusting the result...
   mpq_set_si (minus1, -1, 1);
+
+  // set two_k with n0
   // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
-  for (k = n0, mpq_set_ui (two_k, 2, 1);
+  for (k = 0, mpq_set_ui (two_k, 2, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2031,7 +2132,7 @@ yb (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-xc (FILE * out, int n0, int nmax, int flag)
+xc (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2053,11 +2154,18 @@ xc (FILE * out, int n0, int nmax, int flag)
   //mpq_init (two_k);
 
   mpq_init (minus1);
-
-  //mpq_set_ui (two, 2, 1);
-  // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
   mpq_set_si (minus1, -1, 1);
-  for (k = n0/*, mpq_set_ui (two_k, 2, 1)*/;
+
+  /*
+  mpq_set_ui (two, 2, 1);
+
+  // set two_k with n0
+  // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
+  for (k = 0, mpq_set_ui (two_k, 2, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+  */
+  for (k = n0;
        k <= nmax;
        k++/*, mpq_mul (two_k, two_k, two)*/)
     {
@@ -2113,7 +2221,7 @@ xc (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-yc (FILE * out, int n0, int nmax, int flag)
+yc (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2134,8 +2242,14 @@ yc (FILE * out, int n0, int nmax, int flag)
 
   mpq_set_ui (two, 2, 1);
   //mpq_set_ui (three, 3, 1); // for adjusting the result...
+
+  // set two_k with n0
   // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
-  for (k = n0, mpq_set_ui (two_k, 2, 1);
+  for (k = 0, mpq_set_ui (two_k, 2, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2186,7 +2300,7 @@ yc (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-xg (FILE * out, int n0, int nmax, int flag)
+xg (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2211,7 +2325,13 @@ xg (FILE * out, int n0, int nmax, int flag)
   mpq_set_si (factor, -3, 10);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2257,7 +2377,7 @@ xg (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-yg (FILE * out, int n0, int nmax, int flag)
+yg (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2282,7 +2402,13 @@ yg (FILE * out, int n0, int nmax, int flag)
   mpq_set_si (factor, -3, 10);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2328,7 +2454,7 @@ yg (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-yh (FILE * out, int n0, int nmax, int flag)
+yh (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2353,7 +2479,13 @@ yh (FILE * out, int n0, int nmax, int flag)
   mpq_set_si (factor, -9, 20);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2399,7 +2531,7 @@ yh (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-xm (FILE * out, int n0, int nmax, int flag)
+xm (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2419,7 +2551,13 @@ xm (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2459,7 +2597,7 @@ xm (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-ym (FILE * out, int n0, int nmax, int flag)
+ym (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2479,7 +2617,13 @@ ym (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2519,7 +2663,7 @@ ym (FILE * out, int n0, int nmax, int flag)
 }
 
 void
-zm (FILE * out, int n0, int nmax, int flag)
+zm (FILE *out, int n0, int nmax, int flag)
 {
   int k, q;
   mpq_t f;
@@ -2539,7 +2683,13 @@ zm (FILE * out, int n0, int nmax, int flag)
   mpq_init (two_k);
 
   mpq_set_ui (two, 2, 1);
-  for (k = n0, mpq_set_ui (two_k, 1, 1);
+
+  // set two_k with n0
+  for (k = 0, mpq_set_ui (two_k, 1, 1);
+       k <= n0;
+       k++, mpq_mul (two_k, two_k, two));
+
+  for (k = n0;
        k <= nmax;
        k++, mpq_mul (two_k, two_k, two))
     {
@@ -2602,7 +2752,7 @@ zm (FILE * out, int n0, int nmax, int flag)
 void
 X_p (int n, int p, int q, int mode, mpq_t coef_p)
 {
-  extern struct table_cache * cache_p;
+  extern struct table_cache *cache_p;
   int s;
 
   mpq_t a, b;
@@ -2829,7 +2979,7 @@ X_p (int n, int p, int q, int mode, mpq_t coef_p)
 void
 X_v (int n, int p, int q, int mode, mpq_t coef_v)
 {
-  extern struct table_cache * cache_v;
+  extern struct table_cache *cache_v;
   int s;
 
   mpq_t a;
@@ -2952,7 +3102,7 @@ X_v (int n, int p, int q, int mode, mpq_t coef_v)
 void
 X_q (int n, int p, int q, int mode, mpq_t coef_q)
 {
-  extern struct table_cache * cache_q;
+  extern struct table_cache *cache_q;
   int s;
 
   mpq_t a;
@@ -3086,7 +3236,7 @@ X_q (int n, int p, int q, int mode, mpq_t coef_q)
 void
 Y_p (int n, int p, int q, int mode, mpq_t coef_p)
 {
-  extern struct table_cache * cache_p;
+  extern struct table_cache *cache_p;
   int s;
 
   mpq_t a, b;
@@ -3398,7 +3548,7 @@ Y_p (int n, int p, int q, int mode, mpq_t coef_p)
 void
 Y_v (int n, int p, int q, int mode, mpq_t coef_v)
 {
-  extern struct table_cache * cache_v;
+  extern struct table_cache *cache_v;
   int s;
 
   mpq_t a;
@@ -3560,7 +3710,7 @@ Y_v (int n, int p, int q, int mode, mpq_t coef_v)
 void
 Y_q (int n, int p, int q, int mode, mpq_t coef_q)
 {
-  extern struct table_cache * cache_q;
+  extern struct table_cache *cache_q;
   int s;
 
   mpq_t a, b;
@@ -3745,7 +3895,7 @@ Y_q (int n, int p, int q, int mode, mpq_t coef_q)
 void
 Z_p (int n, int p, int q, int mode, mpq_t coef_p)
 {
-  extern struct table_cache * cache_p;
+  extern struct table_cache *cache_p;
   int s;
 
   mpq_t a, b;
@@ -3963,7 +4113,7 @@ Z_p (int n, int p, int q, int mode, mpq_t coef_p)
 void
 Z_v (int n, int p, int q, int mode, mpq_t coef_v)
 {
-  extern struct table_cache * cache_v;
+  extern struct table_cache *cache_v;
   int s;
 
   mpq_t a;
@@ -4089,7 +4239,7 @@ Z_v (int n, int p, int q, int mode, mpq_t coef_v)
 void
 Z_q (int n, int p, int q, int mode, mpq_t coef_q)
 {
-  extern struct table_cache * cache_q;
+  extern struct table_cache *cache_q;
   int s;
 
   mpq_t a, b;
@@ -4228,7 +4378,7 @@ Z_q (int n, int p, int q, int mode, mpq_t coef_q)
 void
 TQ_p (int n, int p, int q, mpq_t coef_p)
 {
-  extern struct table_cache * cache_p;
+  extern struct table_cache *cache_p;
   int s;
 
   mpq_t a, b;
@@ -4353,7 +4503,7 @@ TQ_p (int n, int p, int q, mpq_t coef_p)
 void
 TQ_v (int n, int p, int q, mpq_t coef_v)
 {
-  extern struct table_cache * cache_v;
+  extern struct table_cache *cache_v;
   int s;
 
   mpq_t a;
@@ -5342,7 +5492,7 @@ comb (mpq_t comb, int n, int m)
 struct table_cache *
 table_cache_init (void)
 {
-  struct table_cache * c = NULL;
+  struct table_cache *c = NULL;
 
   c = (struct table_cache *) malloc (sizeof (struct table_cache));
   if (c == NULL)
@@ -5361,7 +5511,7 @@ table_cache_init (void)
 }
 
 void
-table_cache_free (struct table_cache * c)
+table_cache_free (struct table_cache *c)
 {
   if (c != NULL)
     {
@@ -5382,7 +5532,7 @@ table_cache_free (struct table_cache * c)
 }
 
 void
-table_cache_append (struct table_cache * c,
+table_cache_append (struct table_cache *c,
 		    int n, int p, int q, mpq_t coef)
 {
   c->number ++;
@@ -5400,7 +5550,7 @@ table_cache_append (struct table_cache * c,
 }
 
 void
-table_cache_set_i (struct table_cache * c,
+table_cache_set_i (struct table_cache *c,
 		   int i,
 		   int n, int p, int q, mpq_t coef)
 {
@@ -5425,7 +5575,7 @@ table_cache_set_i (struct table_cache * c,
  *   (RETURN VALUE) : -1 no entry
  */
 int
-search_results (char *file, struct table_cache * cache,
+search_results (char *file, struct table_cache *cache,
 		int n, int p, int q, mpq_t coef)
 {
   extern int cache_max; // max size of cache
@@ -5531,7 +5681,7 @@ search_results (char *file, struct table_cache * cache,
  * OUTPUT
  */
 void
-append_result (char *file, struct table_cache * cache,
+append_result (char *file, struct table_cache *cache,
 	       int n, int p, int q, mpq_t coef)
 {
   extern int cache_max; // max size of cache
