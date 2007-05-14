@@ -1,6 +1,6 @@
 /* exact solution solver for 2 particles in Stokes flows using GMP library
  * Copyright (C) 1999-2007 Kengo Ichiki <kichiki@users.sourceforge.net>
- * $Id: two-body.c,v 5.5 2007/03/25 21:19:44 ichiki Exp $
+ * $Id: two-body.c,v 5.6 2007/04/12 20:19:59 ichiki Exp $
  *
  * References:
  * [JO-1984] D.J.Jeffrey and Onishi, J. Fluid Mech. 139 (1984) pp.261-290.
@@ -306,7 +306,7 @@ main (int argc, char** argv)
 	}
       else
 	{
-	  fprintf (stderr, "$Id: two-body.c,v 5.5 2007/03/25 21:19:44 ichiki Exp $\n");
+	  fprintf (stderr, "$Id: two-body.c,v 5.6 2007/04/12 20:19:59 ichiki Exp $\n");
 	  fprintf (stderr, "USAGE\n");
 	  fprintf (stderr, "%s [OPTIONS]\n", argv [0]);
 	  fprintf (stderr, "\t-h or --help : show this message.\n");
@@ -823,7 +823,7 @@ XA (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -889,7 +889,7 @@ YA (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -955,7 +955,7 @@ YB (FILE *out, int n0, int nmax, int flag)
   // set two_k with n0
   // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
   for (k = 0, mpq_set_ui (two_k, 2, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1021,7 +1021,7 @@ XC (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1096,7 +1096,7 @@ YC (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1176,7 +1176,7 @@ XG (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1252,7 +1252,7 @@ YG (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1328,7 +1328,7 @@ YH (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1408,7 +1408,7 @@ XM (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1483,7 +1483,7 @@ YM (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1558,7 +1558,7 @@ ZM (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1636,7 +1636,7 @@ XP (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1722,7 +1722,7 @@ XQ (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1813,7 +1813,7 @@ TQ (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1900,7 +1900,7 @@ xa (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -1979,7 +1979,7 @@ ya (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -2070,7 +2070,7 @@ yb (FILE *out, int n0, int nmax, int flag)
   // set two_k with n0
   // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
   for (k = 0, mpq_set_ui (two_k, 2, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -2162,7 +2162,7 @@ xc (FILE *out, int n0, int nmax, int flag)
   // set two_k with n0
   // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
   for (k = 0, mpq_set_ui (two_k, 2, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
   */
   for (k = n0;
@@ -2246,7 +2246,7 @@ yc (FILE *out, int n0, int nmax, int flag)
   // set two_k with n0
   // note that 'two_k' is not 2^k but 2x2^k = 2^(k+1)
   for (k = 0, mpq_set_ui (two_k, 2, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -2328,7 +2328,7 @@ xg (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -2405,7 +2405,7 @@ yg (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -2482,7 +2482,7 @@ yh (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
@@ -2554,7 +2554,7 @@ xm (FILE *out, int n0, int nmax, int flag)
 
   // set two_k with n0
   for (k = 0, mpq_set_ui (two_k, 1, 1);
-       k <= n0;
+       k < n0;
        k++, mpq_mul (two_k, two_k, two));
 
   for (k = n0;
