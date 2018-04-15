@@ -1,6 +1,5 @@
 /* check the result table created by two-body.
  * Copyright (C) 2007 Kengo Ichiki <kichiki@users.sourceforge.net>
- * $Id: $
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -279,7 +278,7 @@ main (int argc, char** argv)
 	}
       else
 	{
-	  fprintf (stderr, "$Id: $\n");
+	  fprintf (stderr, "Id: check-two-body-table.c,v 1.1 2007/04/12 20:16:51 ichiki Exp\n");
 	  fprintf (stderr, "USAGE\n");
 	  fprintf (stderr, "%s [OPTIONS]\n", argv [0]);
 	  fprintf (stderr, "\t-f or --file : give the table file to check.\n");

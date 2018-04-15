@@ -1,6 +1,5 @@
 /* exact solution solver for 2 particles in Stokes flows using GMP library
  * Copyright (C) 1999-2007 Kengo Ichiki <kichiki@users.sourceforge.net>
- * $Id: two-body.c,v 5.6 2007/04/12 20:19:59 ichiki Exp $
  *
  * References:
  * [JO-1984] D.J.Jeffrey and Onishi, J. Fluid Mech. 139 (1984) pp.261-290.
@@ -306,7 +305,7 @@ main (int argc, char** argv)
 	}
       else
 	{
-	  fprintf (stderr, "$Id: two-body.c,v 5.6 2007/04/12 20:19:59 ichiki Exp $\n");
+	  fprintf (stderr, "Id: two-body.c,v 5.7 2007/05/14 07:05:20 ichiki Exp\n");
 	  fprintf (stderr, "USAGE\n");
 	  fprintf (stderr, "%s [OPTIONS]\n", argv [0]);
 	  fprintf (stderr, "\t-h or --help : show this message.\n");
